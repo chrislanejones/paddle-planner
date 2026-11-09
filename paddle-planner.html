@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paddle Tide &amp; Current Planner — St. Augustine</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#0b1620; --panel:#102231; --card:#152c3e; --line:#24445c;
+    --ink:#e6f0f6; --mute:#8fb0c4; --out:#22c55e; --back:#38bdf8;
+    --warn:#f59e0b; --bad:#ef4444; --tide:#3b82f6; --cur:#fb923c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{padding:10px 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  header h1{font-size:17px;margin:0}
+  header span{color:var(--mute);font-size:13px}
+  .wrap{display:grid;grid-template-columns:1fr;gap:0}
+  @media(min-width:980px){.wrap{grid-template-columns:1fr 430px;height:calc(100vh - 46px)} #map{height:100%!important} #panel{overflow:auto}}
+  #map{height:52vh;min-height:320px;background:#0e2230}
+  #panel{padding:12px 14px 40px;background:var(--panel)}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .controls label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:3px}
+  .controls .full{grid-column:1/-1}
+  select,button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 9px}
+  button{cursor:pointer}
+  button:hover{border-color:var(--back)}
+  .hint{font-size:13px;color:var(--mute);margin:8px 0}
+  .hint b{color:var(--ink)}
+  #status{font-size:13px;margin:8px 0;color:var(--warn)}
+  #status.ok{color:var(--mute)}
+  h2{font-size:14px;margin:16px 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+  .win{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;cursor:pointer}
+  .win.sel{border-color:var(--out);box-shadow:0 0 0 1px var(--out) inset}
+  .win.dark{opacity:.6}
+  .win .times{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-weight:600}
+  .pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600}
+  .p-out{background:rgba(34,197,94,.15);color:var(--out)}
+  .p-turn{background:rgba(245,158,11,.15);color:var(--warn)}
+  .p-back{background:rgba(56,189,248,.15);color:var(--back)}
+  .win .meta{font-size:13px;color:var(--mute);margin-top:5px}
+  .readout{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .readout .big{font-size:18px;font-weight:700}
+  input[type=range]{width:100%;accent-color:var(--out)}
+  svg#chart{width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  .legend{font-size:12px;color:var(--mute);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .legend i{display:inline-block;width:18px;height:4px;vertical-align:middle;margin-right:4px;border-radius:2px}
+  #drawBar{display:none;gap:6px;margin-top:8px}
+  #drawBar.on{display:flex}
+  .safety{font-size:12px;color:var(--mute);border-top:1px solid var(--line);margin-top:18px;padding-top:10px}
+  .arrow-icon{background:none;border:none}
+  .leaflet-tooltip.lbl{background:#0b1620;color:#e6f0f6;border:1px solid #24445c;font-weight:600;font-size:12px;box-shadow:none}
+  .leaflet-tooltip.lbl.out{border-color:var(--out)}
+  .leaflet-tooltip.lbl.turn{border-color:var(--warn)}
+  .cur-badge{background:#0b1620;border:1px solid var(--cur);color:#fff;border-radius:8px;padding:2px 6px;font:600 11px system-ui;white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛶 Paddle Tide &amp; Current Planner</h1>
+  <span>St. Augustine · NOAA predictions · all times Eastern</span>
+</header>
+<div class="wrap">
+  <div id="map"></div>
+  <section id="panel">
+    <div class="controls">
+      <label>Day
+        <select id="day"></select>
+      </label>
+      <label>Trip length (out + back)
+        <select id="dur">
+          <option value="1.5">1.5 hours</option>
+          <option value="2">2 hours</option>
+          <option value="3" selected>3 hours</option>
+          <option value="4">4 hours</option>
+          <option value="5">5 hours</option>
+        </select>
+      </label>
+      <label class="full">Route
+        <select id="route"></select>
+      </label>
+      <label class="full">Current station (nearest NOAA prediction points)
+        <select id="station"></select>
+      </label>
+    </div>
+    <div id="drawBar">
+      <button id="dUndo">↶ Undo point</button>
+      <button id="dDone">✓ Finish route</button>
+      <button id="dCancel">✕ Cancel</button>
+    </div>
+    <div class="hint" id="routeHint"></div>
+    <div id="status">Loading…</div>
+
+    <h2>Best windows</h2>
+    <div id="windows"></div>
+
+    <h2>Conditions at a time</h2>
+    <div class="readout">
+      <div class="big" id="roTime">—</div>
+      <div id="roCur">—</div>
+      <div id="roTide">—</div>
+      <div id="roWind">—</div>
+      <div id="roLeg" style="margin-top:4px"></div>
+      <input type="range" id="t" min="0" max="1430" step="10" value="480">
+    </div>
+    <svg id="chart" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+    <div class="legend">
+      <span><i style="background:var(--tide)"></i>Tide height</span>
+      <span><i style="background:var(--cur)"></i>Current (above line = flood, below = ebb)</span>
+      <span><i style="background:rgba(34,197,94,.5)"></i>Selected window</span>
+      <span><i style="background:#06101a"></i>Night</span>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><i style="background:var(--out)"></i>Out leg</span>
+      <span><i style="background:var(--back);"></i>Return leg (dashed)</span>
+    </div>
+
+    <details class="hint" style="margin-top:16px">
+      <summary>Map settings (ArcGIS basemaps)</summary>
+      <p>Paste an ArcGIS Location Platform <b>API key</b> (not the client ID or client secret) with the Basemaps privilege. It is saved only in this browser.</p>
+      <div style="display:flex;gap:6px">
+        <input id="akey" type="password" placeholder="AAPT… API key" autocomplete="off"
+          style="flex:1;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px">
+        <button id="akeySave">Save</button>
+        <button id="akeyClear">Clear</button>
+      </div>
+      <div id="akeyMsg" style="margin-top:6px"></div>
+    </details>
+
+    <div class="safety">
+      How it works: ebb current flows toward the inlet (out to sea), flood flows away from it. Each window is centered on the slack where the current flips, so you ride the tail of one current out and the start of the next one back, while currents are at their weakest.<br><br>
+      These are astronomical predictions. Wind, rain runoff and storm surge shift them. Stay out of the St. Augustine and Matanzas inlet throats themselves, where the current runs hardest. Check the marine forecast, wear a PFD, and tell someone your float plan.
+    </div>
+  </section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Show any script error on the page instead of failing silently
+window.addEventListener('error', e => { const s=document.getElementById('status'); if(s){ s.className=''; s.textContent='Error: '+(e.message||e.type)+(e.lineno?' (line '+e.lineno+')':''); } });
+window.addEventListener('unhandledrejection', e => { const s=document.getElementById('status'); if(s){ s.className=''; s.textContent='Error: '+((e.reason&&e.reason.message)||e.reason); } });
+// Leaflet fallback CDNs if unpkg is blocked
+function loadScript(src){ return new Promise((ok,bad)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=bad; document.head.appendChild(s); }); }
+function loadCss(href){ const l=document.createElement('link'); l.rel='stylesheet'; l.href=href; document.head.appendChild(l); }
+(async () => {
+  if(!window.L){
+    for(const base of ['https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/','https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/']){
+      try{ loadCss(base+'leaflet.css'); await loadScript(base+'leaflet.js'); if(window.L) break; }catch(e){}
+    }
+  }
+  startApp();
+})();
+function startApp(){
+(() => {
+const TZ = 'America/New_York';
+const API = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
+const MD  = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=currentpredictions';
+const H = 3600000, DAY = 86400000;
+
+const INLETS = [
+  {name:'St. Augustine Inlet', lat:29.9105, lng:-81.2860},
+  {name:'Matanzas Inlet',      lat:29.7065, lng:-81.2290},
+];
+const TIDE_STATIONS = [
+  {id:'8720576', name:'St. Augustine, city dock', lat:29.8917, lng:-81.3100},
+  {id:'8720587', name:'St. Augustine Beach',      lat:29.8567, lng:-81.2650},
+  {id:'8720686', name:'Fort Matanzas',            lat:29.7150, lng:-81.2390},
+];
+// Approximate lines — use "Draw my own route" for precise paths.
+const PRESETS = [
+  {id:'bayfront', name:'Vilano → Castillo → Bridge of Lions (Matanzas River)',
+   pts:[[29.9120,-81.3020],[29.9060,-81.3035],[29.9005,-81.3060],[29.8960,-81.3078],[29.8925,-81.3075]]},
+  {id:'saltrun', name:'Salt Run, Anastasia State Park (north toward inlet)',
+   pts:[[29.8690,-81.2770],[29.8760,-81.2785],[29.8840,-81.2805],[29.8905,-81.2835]]},
+  {id:'tolomato', name:'Vilano → north up the Tolomato toward Guana',
+   pts:[[29.9120,-81.3020],[29.9250,-81.3045],[29.9400,-81.3075],[29.9550,-81.3100],[29.9700,-81.3140]]},
+  {id:'matanzas', name:'Fort Matanzas → Matanzas Inlet bridge',
+   pts:[[29.7180,-81.2400],[29.7140,-81.2395],[29.7100,-81.2370],[29.7070,-81.2330]]},
+];
+
+const $ = s => document.querySelector(s);
+const ls = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+
+// ---- time helpers: "wall" ms = Eastern clock time stored as if UTC ----
+const partsFmt = new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hourCycle:'h23'});
+function toWall(date){ const p={}; for(const x of partsFmt.formatToParts(date)) p[x.type]=x.value; return Date.UTC(+p.year,+p.month-1,+p.day,(+p.hour)%24,+p.minute); }
+function parseNoaa(s){ const [d,t]=s.split(' '); const [y,m,dd]=d.split('-').map(Number); const [h,mi]=t.split(':').map(Number); return Date.UTC(y,m-1,dd,h,mi); }
+const ymd  = w => new Date(w).toISOString().slice(0,10).replace(/-/g,'');
+const fmtT = w => new Date(w).toLocaleTimeString('en-US',{timeZone:'UTC',hour:'numeric',minute:'2-digit'});
+const fmtD = w => new Date(w).toLocaleDateString('en-US',{timeZone:'UTC',weekday:'long',month:'short',day:'numeric'});
+
+function sunTimes(dayWall, lat, lng){
+  const d = new Date(dayWall), rad = Math.PI/180;
+  const noonUTC = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12);
+  const n = Math.round(noonUTC/DAY + 2440587.5 - 2451545);
+  const J = n - lng/360;
+  const M = (357.5291 + 0.98560028*J) % 360;
+  const C = 1.9148*Math.sin(M*rad) + 0.02*Math.sin(2*M*rad) + 0.0003*Math.sin(3*M*rad);
+  const lam = ((M + C + 180 + 102.9372) % 360) * rad;
+  const Jt = 2451545 + J + 0.0053*Math.sin(M*rad) - 0.0069*Math.sin(2*lam);
+  const dec = Math.asin(Math.sin(lam)*Math.sin(23.44*rad));
+  const cw = (Math.sin(-0.833*rad) - Math.sin(lat*rad)*Math.sin(dec)) / (Math.cos(lat*rad)*Math.cos(dec));
+  const w = Math.acos(Math.max(-1,Math.min(1,cw)))/rad;
+  const toMs = jd => (jd - 2440587.5)*DAY;
+  return { rise: toWall(new Date(toMs(Jt - w/360))), set: toWall(new Date(toMs(Jt + w/360))) };
+}
+
+// ---- geo helpers ----
+function km(a,b){ const R=6371, r=Math.PI/180; const dLa=(b.lat-a.lat)*r, dLo=(b.lng-a.lng)*r;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+function bearing(a,b){ const r=Math.PI/180; const y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r);
+  const x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r); return (Math.atan2(y,x)/r+360)%360; }
+const P = a => ({lat:a[0], lng:a[1]});
+function routeMid(pts){ const i=Math.floor(pts.length/2); return pts.length%2 ? P(pts[i]) : {lat:(pts[i-1][0]+pts[i][0])/2, lng:(pts[i-1][1]+pts[i][1])/2}; }
+function nearestBy(list, pt){ return list.map(s=>({...s, d:km(pt,s)})).sort((a,b)=>a.d-b.d); }
+function offsetLine(pts, m){
+  const k = 111320;
+  return pts.map((p,i)=>{
+    const a = pts[Math.max(0,i-1)], b = pts[Math.min(pts.length-1,i+1)];
+    const dx=(b[1]-a[1])*k*Math.cos(p[0]*Math.PI/180), dy=(b[0]-a[0])*k, L=Math.hypot(dx,dy)||1;
+    const nx=dy/L, ny=-dx/L; // right-hand normal
+    return [p[0]+ny*m/k, p[1]+nx*m/(k*Math.cos(p[0]*Math.PI/180))];
+  });
+}
+
+// ---- map ----
+if(!window.L){
+  document.getElementById('map').innerHTML='<div style="padding:20px;color:#f59e0b">Map library could not load (blocked network). The planner below still works.</div>';
+  const stub = new Proxy(function(){}, { get:()=>stub, apply:()=>stub, construct:()=>stub, set:()=>true });
+  window.L = stub;
+}
+const map = L.map('map').setView([29.85,-81.28], 11);
+// ---- basemaps: OpenStreetMap always; ArcGIS when an API key is set ----
+// Paste a referrer-restricted ArcGIS API key here, or enter it in "Map settings" on the page.
+const ARCGIS_KEY_IN_FILE = '';
+const STATIC = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1';
+const esriAttr = 'Powered by <a href="https://www.esri.com">Esri</a> | Esri, TomTom, Garmin, FAO, NOAA, USGS';
+let baseCtl = null, currentBase = null;
+function arcgisKey(){ return (ls.get('pp_arcgis_key') || ARCGIS_KEY_IN_FILE || '').trim(); }
+function buildBasemaps(){
+  if(baseCtl){ map.removeControl(baseCtl); }
+  if(currentBase){ map.removeLayer(currentBase); }
+  const bases = {};
+  const key = arcgisKey();
+  if(key){
+    const st = style => L.tileLayer(`${STATIC}/${style}/static/tile/{z}/{y}/{x}?token=${encodeURIComponent(key)}`,
+      {tileSize:512, zoomOffset:-1, maxZoom:19, attribution:esriAttr});
+    bases['ArcGIS Navigation'] = st('arcgis/navigation');
+    bases['ArcGIS Outdoor'] = st('arcgis/outdoor');
+    bases['ArcGIS Satellite'] = L.layerGroup([
+      L.tileLayer(`https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${encodeURIComponent(key)}`,
+        {maxZoom:19, attribution:'Esri, Maxar, Earthstar Geographics'}),
+      st('arcgis/imagery/labels')
+    ]);
+  }
+  bases['OpenStreetMap'] = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap contributors'});
+  const saved = ls.get('pp_basemap');
+  currentBase = bases[saved] || bases[Object.keys(bases)[0]];
+  currentBase.addTo(map);
+  baseCtl = L.control.layers(bases, null, {position:'topright', collapsed:true}).addTo(map);
+}
+map.on('baselayerchange', e => ls.set('pp_basemap', e.name));
+buildBasemaps();
+const routeLayer = L.layerGroup().addTo(map);
+const stationLayer = L.layerGroup().addTo(map);
+const drawLayer = L.layerGroup().addTo(map);
+INLETS.forEach(i => L.circleMarker([i.lat,i.lng],{radius:6,color:'#ef4444',fillOpacity:.8}).bindTooltip('⚠️ '+i.name).addTo(map));
+
+const arrowIcon = (deg,color,size=18) => L.divIcon({className:'arrow-icon', iconSize:[size,size], iconAnchor:[size/2,size/2],
+  html:`<svg width="${size}" height="${size}" viewBox="0 0 20 20" style="transform:rotate(${deg}deg)"><path d="M10 1 L17 17 L10 13 L3 17 Z" fill="${color}" stroke="#0b1620" stroke-width="1.2"/></svg>`});
+
+// ---- state ----
+const S = { days:[], dayIdx:0, dur:3, route:null, stations:[], station:null, tideStation:null,
+  tides:[], events:[], dirs:{}, approx:false, wind:[], windows:[], sel:0, cache:{} };
+
+// ---- data ----
+async function getJSON(url, tries=2){
+  let last;
+  for(let i=0;i<tries;i++){
+    const ctl = new AbortController(), timer = setTimeout(()=>ctl.abort(), 15000);
+    try{
+      const r = await fetch(url, {signal:ctl.signal});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json();
+      if(j.error) throw new Error(j.error.message||'NOAA error');
+      return j;
+    }catch(e){
+      last = (e.name==='TypeError' || e.name==='AbortError')
+        ? new Error('BLOCKED') : e;
+      if(last.message!=='BLOCKED') break;
+    }finally{ clearTimeout(timer); }
+  }
+  throw last;
+}
+const BLOCKED_MSG = 'Your browser blocked the NOAA data request. This happens inside the Claude app preview and the iPhone Files viewer. Open the file in Safari or Chrome (or host it, e.g. GitHub Pages) and it will load.';
+
+async function loadCurrentStations(){
+  const c = ls.get('pp_cstations_v1');
+  if(c && Date.now()-c.t < 30*DAY && c.s.length) return c.s;
+  const j = await getJSON(MD);
+  const s = (j.stations||[]).map(x=>({id:x.id, name:x.name, lat:+x.lat, lng:+x.lng, bin:(x.currbin ?? x.bin ?? null)}))
+    .filter(x => x.lat>28.5 && x.lat<31.5 && x.lng>-82.5 && x.lng<-80);
+  ls.set('pp_cstations_v1',{t:Date.now(), s});
+  return s;
+}
+
+function curEvents(cp){
+  return cp.map(p=>{
+    const t = parseNoaa(p.Time), raw = +p.Velocity_Major || 0, vm = Math.abs(raw), ty = String(p.Type||'').toLowerCase();
+    const v = ty==='slack' ? 0 : ty==='ebb' ? -vm : ty==='flood' ? vm : raw;
+    return {t, v};
+  }).sort((a,b)=>a.t-b.t);
+}
+function tideEvents(tides){ // fallback: slack ≈ high/low tide, max current halfway between
+  const E=[];
+  for(let i=0;i<tides.length;i++){
+    E.push({t:tides[i].t, v:0});
+    if(i<tides.length-1){ const a=tides[i], b=tides[i+1]; E.push({t:(a.t+b.t)/2, v: a.type==='L' ? 1 : -1}); }
+  }
+  return E;
+}
+
+async function loadData(){
+  const pts = S.route.pts, mid = routeMid(pts);
+  const b = ymd(S.days[0]-DAY), e = ymd(S.days[6]+2*DAY);
+  S.tideStation = nearestBy(TIDE_STATIONS, mid)[0];
+  setStatus('Loading NOAA predictions…');
+  const key = `${S.tideStation.id}|${S.station?S.station.id+':'+S.station.bin:'none'}|${b}`;
+  try{
+    if(!S.cache[key]){
+      const tideUrl = `${API}?product=predictions&application=paddle_planner&station=${S.tideStation.id}&begin_date=${b}&end_date=${e}&datum=MLLW&units=english&time_zone=lst_ldt&interval=hilo&format=json`;
+      let tides=[], tideErr='';
+      try{ tides = ((await getJSON(tideUrl)).predictions||[]).map(p=>({t:parseNoaa(p.t), v:+p.v, type:p.type})); }
+      catch(x){ tideErr = x.message; }
+      let events=null, dirs={}, approx=true, err='';
+      if(S.station){
+        const base = `${API}?product=currents_predictions&application=paddle_planner&station=${S.station.id}&begin_date=${b}&end_date=${e}&units=english&time_zone=lst_ldt&interval=MAX_SLACK&format=json`;
+        const tries = S.station.bin!=null ? [base+'&bin='+S.station.bin, base] : [base];
+        for(const u of tries){
+          try{
+            const cp = (await getJSON(u)).current_predictions.cp;
+            if(cp && cp.length){ events = curEvents(cp); dirs = {flood:+cp[0].meanFloodDir, ebb:+cp[0].meanEbbDir}; approx=false; break; }
+          }catch(x){ err = x.message; }
+        }
+      }
+      if(!events) events = tideEvents(tides);
+      if(!tides.length && !events.length) throw new Error(tideErr || err || 'No data returned');
+      S.cache[key] = {tides, events, dirs, approx, err};
+    }
+    Object.assign(S, S.cache[key]);
+    setStatus(S.approx
+      ? `Current estimated from tide times at ${S.tideStation.name}${S.err?' (current station unavailable)':''}. Slack inside the river often lags high/low tide by 30–90 min.`
+      : `Currents: ${S.station.name} (${S.station.d.toFixed(1)} km away) · Tides: ${S.tideStation.name}`, !S.approx);
+  }catch(x){
+    setStatus(x.message==='BLOCKED' ? BLOCKED_MSG : 'NOAA error: '+x.message);
+    S.tides=[]; S.events=[];
+  }
+  loadWind(mid);
+  render();
+}
+
+async function loadWind(mid){
+  const k = 'pp_wind_'+mid.lat.toFixed(2)+','+mid.lng.toFixed(2);
+  const c = ls.get(k);
+  if(c && Date.now()-c.t < 2*H){ S.wind=c.w; render(); return; }
+  try{
+    const pt = await getJSON(`https://api.weather.gov/points/${mid.lat.toFixed(4)},${mid.lng.toFixed(4)}`);
+    const fc = await getJSON(pt.properties.forecastHourly);
+    S.wind = fc.properties.periods.map(p=>({t:toWall(new Date(p.startTime)), mph:Math.max(...(p.windSpeed.match(/\d+/g)||[0]).map(Number)), dir:p.windDirection, sky:p.shortForecast}));
+    ls.set(k,{t:Date.now(), w:S.wind});
+  }catch(x){ S.wind=[]; }
+  render();
+}
+
+// ---- models ----
+function currentAt(t){
+  const E=S.events; if(!E.length) return null;
+  let i = E.findIndex(e=>e.t>t); if(i<=0) return null;
+  const a=E[i-1], b=E[i], f=(t-a.t)/(b.t-a.t);
+  return a.v + (b.v-a.v)*(1-Math.cos(Math.PI*f))/2;
+}
+function tideAt(t){
+  const T=S.tides; let i=T.findIndex(e=>e.t>t); if(i<=0) return null;
+  const a=T[i-1], b=T[i], f=(t-a.t)/(b.t-a.t);
+  return a.v + (b.v-a.v)*(1-Math.cos(Math.PI*f))/2;
+}
+function windAt(t){ return S.wind.find(w=>t>=w.t && t<w.t+H) || null; }
+function findTurns(E){
+  const out=[]; let last=null;
+  E.forEach((e,i)=>{
+    if(e.v===0) return;
+    if(last && Math.sign(last.v)!==Math.sign(e.v)){
+      const sl = E.slice(last.i+1,i).find(x=>x.v===0);
+      out.push({t: sl ? sl.t : (last.t+e.t)/2, from:Math.sign(last.v)});
+    }
+    last={...e,i};
+  });
+  return out;
+}
+function outTowardInlet(pts){
+  const s=P(pts[0]), e=P(pts[pts.length-1]);
+  const inlet = nearestBy(INLETS, routeMid(pts))[0];
+  return {toward: km(e,inlet) < km(s,inlet), inlet};
+}
+function computeWindows(){
+  if(!S.events.length) return [];
+  const d0=S.days[S.dayIdx], d1=d0+DAY, half=S.dur*H/2, mid=routeMid(S.route.pts);
+  const {toward} = outTowardInlet(S.route.pts);
+  const outSign = toward ? -1 : 1;           // ebb (-) runs toward the inlet
+  const sun = sunTimes(d0, mid.lat, mid.lng);
+  return findTurns(S.events).filter(x=>x.from===outSign).map(x=>{
+    const w={launch:x.t-half, turn:x.t, back:x.t+half};
+    let peak=0; for(let t=w.launch;t<=w.back;t+=10*60000){ const v=currentAt(t); if(v!=null) peak=Math.max(peak,Math.abs(v)); }
+    w.peak=peak; w.daylight = w.launch>=sun.rise && w.back<=sun.set;
+    const ws = S.wind.filter(p=>p.t+H>w.launch && p.t<w.back);
+    w.wind = ws.length ? ws.reduce((m,p)=>p.mph>m.mph?p:m) : null;
+    return w;
+  }).filter(w=>w.launch<d1 && w.back>d0);
+}
+
+// ---- render ----
+function setStatus(msg, ok){ const el=$('#status'); el.textContent=msg; el.className = ok?'ok':''; }
+
+function render(){
+  if(!S.route) return;
+  S.windows = computeWindows();
+  if(S.sel>=S.windows.length) S.sel=0;
+  // prefer first daylight window on fresh render
+  if(S._autoSel){ const i=S.windows.findIndex(w=>w.daylight); S.sel = i<0?0:i; S._autoSel=false;
+    const w=S.windows[S.sel]; if(w){ const m=Math.round(Math.min(Math.max(w.launch-S.days[S.dayIdx],0),DAY-600000)/60000/10)*10; $('#t').value=m; } }
+  renderWindows(); drawRoute(); renderTime(); renderChart();
+}
+
+function renderWindows(){
+  const el=$('#windows'); el.innerHTML='';
+  if(!S.windows.length){ el.innerHTML='<div class="hint">No windows found for this day.</div>'; return; }
+  const unit = S.approx ? '' : ' kn';
+  S.windows.forEach((w,i)=>{
+    const d=document.createElement('div');
+    d.className='win'+(i===S.sel?' sel':'')+(w.daylight?'':' dark');
+    const peak = S.approx ? 'relative strength only' : `peak current during trip ${w.peak.toFixed(1)}${unit}`;
+    const wind = w.wind ? ` · wind up to ${w.wind.mph} mph ${w.wind.dir}` : '';
+    d.innerHTML = `<div class="times">
+        <span class="pill p-out">🚣 Launch ${fmtT(w.launch)}</span>→
+        <span class="pill p-turn">↩︎ Turn ${fmtT(w.turn)}</span>→
+        <span class="pill p-back">🏁 Back by ${fmtT(w.back)}</span></div>
+      <div class="meta">${w.daylight?'☀️ Daylight':'🌙 Partly in the dark'} · ${peak}${wind}</div>`;
+    d.onclick=()=>{ S.sel=i; const m=Math.round((w.launch-S.days[S.dayIdx])/600000)*10; $('#t').value=Math.max(0,Math.min(1430,m)); render(); };
+    el.appendChild(d);
+  });
+}
+
+function drawRoute(){
+  routeLayer.clearLayers();
+  const pts=S.route.pts; if(!pts || pts.length<2) return;
+  const w=S.windows[S.sel];
+  const back = offsetLine(pts.slice().reverse(), 45);
+  L.polyline(pts,{color:'#22c55e',weight:5,opacity:.95}).addTo(routeLayer);
+  L.polyline(back,{color:'#38bdf8',weight:4,dashArray:'8 8'}).addTo(routeLayer);
+  const arrows=(line,color)=>{ for(let i=0;i<line.length-1;i++){ const a=line[i], b=line[i+1];
+    L.marker([(a[0]+b[0])/2,(a[1]+b[1])/2],{icon:arrowIcon(bearing(a,b),color),interactive:false}).addTo(routeLayer);} };
+  arrows(pts,'#22c55e'); arrows(back,'#38bdf8');
+  const start=pts[0], end=pts[pts.length-1];
+  const sLbl = w ? `🚣 Launch ${fmtT(w.launch)}<br>🏁 Back by ${fmtT(w.back)}` : 'Start';
+  const eLbl = w ? `↩︎ Turn around ${fmtT(w.turn)}<br><small>slack · current flips</small>` : 'Turnaround';
+  L.circleMarker(start,{radius:7,color:'#22c55e',fillColor:'#0b1620',fillOpacity:1,weight:3}).bindTooltip(sLbl,{permanent:true,direction:'left',className:'lbl out',offset:[-8,0]}).addTo(routeLayer);
+  L.circleMarker(end,{radius:7,color:'#f59e0b',fillColor:'#0b1620',fillOpacity:1,weight:3}).bindTooltip(eLbl,{permanent:true,direction:'right',className:'lbl turn',offset:[8,0]}).addTo(routeLayer);
+}
+
+function renderTime(){
+  const d0=S.days[S.dayIdx]; const t=d0 + (+$('#t').value)*60000;
+  $('#roTime').textContent = fmtD(t)+' · '+fmtT(t);
+  const v=currentAt(t), h=tideAt(t), wd=windAt(t);
+  const {toward, inlet} = outTowardInlet(S.route.pts);
+  let curTxt='Current: no data';
+  if(v!=null){
+    const kind = Math.abs(v) < (S.approx?0.15:0.2) ? 'near slack' : v>0 ? 'flooding (away from inlet)' : 'ebbing (toward inlet)';
+    curTxt = S.approx ? `Current: ${kind} — ${Math.round(Math.abs(v)*100)}% of max (estimate)` : `Current: ${Math.abs(v).toFixed(1)} kn, ${kind}`;
+  }
+  $('#roCur').textContent = curTxt;
+  const prev = tideAt(t-10*60000);
+  $('#roTide').textContent = h!=null ? `Tide: ${h.toFixed(1)} ft MLLW, ${h>=prev?'rising':'falling'}` : 'Tide: no data';
+  $('#roWind').textContent = wd ? `Wind: ${wd.mph} mph ${wd.dir} · ${wd.sky}` : (S.wind.length?'Wind: beyond NWS hourly forecast':'Wind: unavailable');
+  let leg='';
+  if(v!=null && Math.abs(v)>=(S.approx?0.15:0.2)){
+    const helpsOut = toward ? v<0 : v>0;
+    leg = helpsOut ? '🟢 Current is pushing you along the <b>out</b> leg' : '🔵 Current is pushing you along the <b>return</b> leg';
+  } else if(v!=null) leg='⚪ Slack water — easy both ways';
+  $('#roLeg').innerHTML = leg;
+  // station arrow
+  stationLayer.clearLayers();
+  const st = S.approx ? S.tideStation : S.station;
+  if(st && v!=null){
+    const dir = v>=0 ? S.dirs.flood : S.dirs.ebb;
+    const lab = S.approx ? (Math.abs(v)<.15?'slack':v>0?'flood':'ebb') : `${Math.abs(v).toFixed(1)} kn ${v>=0?'flood':'ebb'}`;
+    if(!S.approx && isFinite(dir)) L.marker([st.lat,st.lng],{icon:arrowIcon(dir,'#fb923c',26)}).addTo(stationLayer);
+    L.marker([st.lat,st.lng],{icon:L.divIcon({className:'arrow-icon',iconAnchor:[-14,10],html:`<span class="cur-badge">${lab}</span>`})})
+      .bindTooltip(st.name).addTo(stationLayer);
+  }
+  drawCursor();
+}
+
+function renderChart(){
+  const svg=$('#chart'), W=600, Hh=160, d0=S.days[S.dayIdx];
+  const x = t => (t-d0)/DAY*W;
+  let s='';
+  const mid=routeMid(S.route.pts), sun=sunTimes(d0,mid.lat,mid.lng);
+  s+=`<rect x="0" y="0" width="${Math.max(0,x(sun.rise))}" height="${Hh}" fill="#06101a"/>`;
+  s+=`<rect x="${x(sun.set)}" y="0" width="${Math.max(0,W-x(sun.set))}" height="${Hh}" fill="#06101a"/>`;
+  const w=S.windows[S.sel];
+  if(w) s+=`<rect x="${x(w.launch)}" y="0" width="${x(w.back)-x(w.launch)}" height="${Hh}" fill="rgba(34,197,94,.18)"/><line x1="${x(w.turn)}" x2="${x(w.turn)}" y1="0" y2="${Hh}" stroke="#f59e0b" stroke-dasharray="3 3"/>`;
+  for(let h=0;h<=24;h+=3){ s+=`<line x1="${h*25}" x2="${h*25}" y1="0" y2="${Hh-14}" stroke="#24445c" stroke-width=".5"/>`;
+    if(h<24) s+=`<text x="${h*25+2}" y="${Hh-3}" fill="#8fb0c4" font-size="10">${h===0?'12a':h<12?h+'a':h===12?'12p':(h-12)+'p'}</text>`; }
+  const tp=[], cp=[]; let hmin=Infinity,hmax=-Infinity,vmax=0;
+  for(let m=0;m<=1440;m+=10){ const t=d0+m*60000, h=tideAt(t), v=currentAt(t);
+    if(h!=null){ tp.push([m,h]); hmin=Math.min(hmin,h); hmax=Math.max(hmax,h); }
+    if(v!=null){ cp.push([m,v]); vmax=Math.max(vmax,Math.abs(v)); } }
+  if(tp.length){ const yT=h=>130-(h-hmin)/((hmax-hmin)||1)*105;
+    s+=`<path d="M${tp.map(p=>`${p[0]/1440*W},${yT(p[1])}`).join('L')}L${W},146L0,146Z" fill="rgba(59,130,246,.22)" stroke="#3b82f6" stroke-width="2"/>`; }
+  if(cp.length){ const yC=v=>72-v/(vmax||1)*55;
+    s+=`<line x1="0" x2="${W}" y1="72" y2="72" stroke="#fb923c" stroke-opacity=".35" stroke-dasharray="2 4"/>`;
+    s+=`<path d="M${cp.map(p=>`${p[0]/1440*W},${yC(p[1])}`).join('L')}" fill="none" stroke="#fb923c" stroke-width="2"/>`;
+    if(!S.approx) s+=`<text x="4" y="12" fill="#fb923c" font-size="10">±${vmax.toFixed(1)} kn</text>`; }
+  s+=`<line id="cursor" x1="0" x2="0" y1="0" y2="${Hh}" stroke="#fff" stroke-width="1.5"/>`;
+  svg.innerHTML=s; drawCursor();
+}
+function drawCursor(){ const c=document.getElementById('cursor'); if(c){ const X=(+$('#t').value)/1440*600; c.setAttribute('x1',X); c.setAttribute('x2',X);} }
+
+// ---- route / station selection ----
+function routeList(){
+  const list=[...PRESETS]; const c=ls.get('pp_custom_route'); if(c && c.pts && c.pts.length>1) list.push(c); return list;
+}
+function fillRoutes(selId){
+  const sel=$('#route'); sel.innerHTML='';
+  routeList().forEach(r=>sel.add(new Option(r.name,r.id)));
+  sel.add(new Option('✏️ Draw my own route…','__draw'));
+  sel.value = selId || PRESETS[0].id;
+}
+function fillStations(){
+  const mid=routeMid(S.route.pts), sel=$('#station'); sel.innerHTML='';
+  const seen=new Set();
+  const near = nearestBy(S.stations, mid).filter(s=>{ const k=s.id+':'+s.bin; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,6);
+  near.forEach((s,i)=>sel.add(new Option(`${s.name} — ${s.d.toFixed(1)} km`, i)));
+  sel.add(new Option('Estimate from tide times only','none'));
+  S._near = near;
+  S.station = near[0] && near[0].d < 15 ? near[0] : null;
+  sel.value = S.station ? '0' : 'none';
+}
+function setRoute(id){
+  const r = routeList().find(x=>x.id===id); if(!r) return;
+  S.route=r; S._autoSel=true;
+  const {toward, inlet} = outTowardInlet(r.pts);
+  $('#routeHint').innerHTML = `Out leg heads <b>${toward?'toward':'away from'}</b> ${inlet.name} → ride the <b>${toward?'ebb':'flood'}</b> out and the <b>${toward?'flood':'ebb'}</b> back. Route lines are approximate; draw your own for an exact path.`;
+  fillStations();
+  map.fitBounds(L.polyline(r.pts).getBounds(),{padding:[60,60],maxZoom:14});
+  loadData();
+}
+
+// ---- draw mode ----
+let drawing=false, drawPts=[];
+function renderDraw(){ drawLayer.clearLayers(); if(drawPts.length) L.polyline(drawPts,{color:'#fff',dashArray:'4 6'}).addTo(drawLayer);
+  drawPts.forEach((p,i)=>L.circleMarker(p,{radius:5,color:i?'#fff':'#22c55e'}).addTo(drawLayer)); }
+function startDraw(){ drawing=true; drawPts=[]; $('#drawBar').classList.add('on'); routeLayer.clearLayers();
+  setStatus('Tap the map: first tap = launch spot, last tap = turnaround spot.'); map.getContainer().style.cursor='crosshair'; }
+function endDraw(save){
+  drawing=false; $('#drawBar').classList.remove('on'); map.getContainer().style.cursor=''; drawLayer.clearLayers();
+  if(save && drawPts.length>1){ ls.set('pp_custom_route',{id:'custom',name:'My route',pts:drawPts}); fillRoutes('custom'); setRoute('custom'); }
+  else { fillRoutes(S.route?S.route.id:null); if(S.route) setRoute(S.route.id); }
+}
+map.on('click',e=>{ if(!drawing) return; drawPts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]); renderDraw(); });
+$('#dUndo').onclick=()=>{ drawPts.pop(); renderDraw(); };
+$('#dDone').onclick=()=>endDraw(true);
+$('#dCancel').onclick=()=>endDraw(false);
+
+// ---- controls ----
+$('#route').onchange=e=>{ if(e.target.value==='__draw') startDraw(); else setRoute(e.target.value); };
+$('#station').onchange=e=>{ S.station = e.target.value==='none' ? null : S._near[+e.target.value]; S._autoSel=true; loadData(); };
+$('#day').onchange=e=>{ S.dayIdx=+e.target.value; S._autoSel=true; render(); };
+$('#dur').onchange=e=>{ S.dur=+e.target.value; S._autoSel=true; render(); };
+$('#t').oninput=()=>renderTime();
+$('#akeyMsg').textContent = arcgisKey() ? 'ArcGIS basemaps on. Use the layers button on the map to switch.' : 'Using OpenStreetMap.';
+$('#akeySave').onclick=()=>{ const k=$('#akey').value.trim(); if(!k) return;
+  ls.set('pp_arcgis_key',k); $('#akey').value=''; ls.set('pp_basemap','ArcGIS Navigation'); buildBasemaps();
+  $('#akeyMsg').textContent='Saved. ArcGIS basemaps on. If tiles stay blank, check the key has the Basemaps privilege and allows this site as a referrer.'; };
+$('#akeyClear').onclick=()=>{ try{localStorage.removeItem('pp_arcgis_key');}catch(e){} ls.set('pp_basemap','OpenStreetMap'); buildBasemaps(); $('#akeyMsg').textContent='Cleared. Using OpenStreetMap.'; };
+
+// ---- init ----
+(async function init(){
+  const now=toWall(new Date()), d0=now-(now%DAY);
+  for(let i=0;i<7;i++){ const d=d0+i*DAY; S.days.push(d); $('#day').add(new Option((i===0?'Today · ':i===1?'Tomorrow · ':'')+fmtD(d), i)); }
+  $('#t').value = Math.floor((now-d0)/600000)*10;
+  fillRoutes();
+  try{ S.stations = await loadCurrentStations(); }catch(x){ S.stations=[]; }
+  setRoute($('#route').value);
+})();
+})();
+}
+</script>
+</body>
+</html>
