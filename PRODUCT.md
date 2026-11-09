@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-React 19 + Vite, Leaflet for the map, plain CSS with design tokens, Phosphor icons, self-hosted Atkinson Hyperlegible Next. Static site: deployed to GitHub Pages.
+React 19 + Vite, Leaflet for the map, plain CSS with design tokens, Phosphor icons, self-hosted Archivo. Static site: deployed to GitHub Pages.
 
 ## Users
 

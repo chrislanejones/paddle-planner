@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import '@fontsource-variable/atkinson-hyperlegible-next'
+import '@fontsource-variable/archivo/wdth.css'
 import 'leaflet/dist/leaflet.css'
 import './styles.css'
 import App from './App.jsx'

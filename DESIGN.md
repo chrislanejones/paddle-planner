@@ -21,26 +21,33 @@ colors:
   tide: "#2b5fa8"
   current: "#b45309"
   night: "#cfdbe4"
+  chart-out: "#0b7a3e"
+  chart-back: "#0a62a3"
+  chart-slack: "#b45f06"
+  chart-hazard: "#b3195f"
+  chart-ink: "#0b2233"
+  chart-edge: "#5b7a8c"
   dark-panel: "#0c2130"
   dark-card: "#11303f"
   dark-ink: "#e7f1f6"
   dark-select: "#cfe8f5"
 typography:
   body:
-    fontFamily: "Atkinson Hyperlegible Next Variable, system-ui, sans-serif"
+    fontFamily: "Archivo Variable, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.5
   card-title:
-    fontFamily: "Atkinson Hyperlegible Next Variable, system-ui, sans-serif"
+    fontFamily: "Archivo Variable, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 700
     lineHeight: 1.25
   label:
-    fontFamily: "Atkinson Hyperlegible Next Variable, system-ui, sans-serif"
+    fontFamily: "Archivo Variable, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 700
 rounded:
+  xs: "2px"
   sm: "4px"
   md: "6px"
 spacing:
@@ -91,6 +98,8 @@ Roles, not decoration. Accent color appears only on selection, state, and the tr
 
 Dark theme values live beside the light ones in `src/tokens.css`; the two dark blocks must stay identical.
 
+The **chart-** colors are fixed across themes because the map is always a light chart: they are the route, turn marker, hazard rings and map label plates, and mirror `out`, `back`, `slack` and `hazard` with a little more saturation so they read on buff land and blue water.
+
 ### Named Rules
 
 - **Contrast is tested.** Every text/surface pair is at least 4.5:1 and every control edge at least 3:1, in both themes, by `src/lib/tokens.test.js`. Change a token and the build tells you.
@@ -98,7 +107,7 @@ Dark theme values live beside the light ones in `src/tokens.css`; the two dark b
 
 ## Typography
 
-One family: Atkinson Hyperlegible Next (variable), self-hosted. Three roles carry the hierarchy: **data** (large bold tabular digits with a small tracked unit, used for every time), **label** (12px bold caps, tracked .08em, muted), and **body** (16px/14px regular). Section headings are labels followed by a hairline rule, like a chart legend. Headings use `text-wrap: balance`, prose `pretty`. It was designed for legibility, which is the point for glare and small phone screens. Numbers use tabular figures so times line up. Fixed rem scale, ratio about 1.125: 12, 14, 16, 18, 22 px. No fluid type. Body measure is capped at 70ch.
+One family: Archivo (variable, weight and width axes), self-hosted. A sturdy grotesque with signage-style letterforms that hold up in glare and on small screens. Its width axis does the job of a second typeface: data digits run narrow (78%) like a tide table's columns, tracked caps labels run slightly narrow (88%), and reading text stays at normal width. Three roles carry the hierarchy: **data** (large bold tabular digits with a small tracked unit, used for every time), **label** (12px bold caps, tracked .08em, muted), and **body** (16px/14px regular). Section headings are labels followed by a hairline rule, like a chart legend. Headings use `text-wrap: balance`, prose `pretty`. Numbers use tabular figures so times line up. Fixed rem scale, ratio about 1.125: 12, 14, 16, 18, 22 px. No fluid type. Body measure is capped at 70ch.
 
 ## Layout
 
@@ -110,7 +119,7 @@ Flat. Edges are 1px borders, never stacked shadows. Interactive edges use `contr
 
 ## Shapes
 
-Controls and chips 4px radius, cards 6px. Squarer than a default UI kit on purpose: it reads as a chart label plate, not a pill. Control borders are 1.5px. Icons are Phosphor, regular weight, imported per icon from `src/components/icons.js`.
+Slack-band strip and legend swatches 2px, controls and chips 4px, cards 6px. Squarer than a default UI kit on purpose: it reads as a chart label plate, not a pill. Control borders are 1.5px. Icons are Phosphor, regular weight, imported per icon from `src/components/icons.js`.
 
 ## Components
 
