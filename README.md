@@ -6,7 +6,7 @@ Pick a launch time so your paddle rides the tail of one current out and the star
 
 ![The planner on the NOAA chart: a route near St. Augustine Inlet with launch, turn and return times, and the day's launch windows in the side panel](docs/paddle-planner.webp)
 
-It's built for kayakers and stand-up paddleboarders around St. Augustine, Florida. A tide table gives you times. This gives you the whole out-and-back trip and where it sits in the day: when to launch, when to turn, when to be back, whether it's daylight, and how hard the wind is blowing.
+It's built for kayakers and stand-up paddleboarders in Northeast Florida, from Jacksonville down to Palm Coast. A tide table gives you times. This gives you the whole out-and-back trip and where it sits in the day: when to launch, when to turn, when to be back, whether it's daylight, and how hard the wind is blowing.
 
 Mirrors: [GitHub](https://github.com/chrislanejones/paddle-planner) and [Codeberg](https://codeberg.org/chrislanejones/paddle-planner).
 
@@ -16,7 +16,7 @@ Mirrors: [GitHub](https://github.com/chrislanejones/paddle-planner) and [Codeber
 - **The slack band.** Every window is drawn on a 24-hour strip: green for the way out, blue for the way back, amber at the turn, with daylight behind it. The same colors show up on the chart and the map.
 - **The tide and current chart.** Drag across it to scrub through the day. The readout under it tells you the current, the tide height and the wind at that minute, and which leg the current is helping.
 - **The map.** NOAA's nautical chart by default, with your route drawn on top and the inlet hazard marked where it is. Switch to OpenStreetMap or ArcGIS if you want.
-- **Eleven preset routes and one of your own.** From Guana down to Palm Coast, including the San Sebastian River, Moultrie Creek, Pellicer Creek, Anastasia Island and Summer Haven. Draw a custom route on the map and it's saved in your browser.
+- **Nineteen preset routes and one of your own.** They're grouped by county in the route picker. Duval has Sisters Creek, the Fort George River, Pablo Creek, Clapboard Creek, Pumpkin Hill Creek, Nassau Sound, the Ortega River and the Jacksonville riverfront. St. Johns County has the St. Augustine bayfront, Salt Run, the Tolomato, Guana, the San Sebastian River, Moultrie Creek, Anastasia Island, Matanzas, Summer Haven and Pellicer Creek. Flagler has Palm Coast. Draw a custom route on the map and it's saved in your browser.
 - **Daylight and wind per window.** Windows that start or end in the dark say so.
 - **Light and dark themes.** It follows your system, or you can pick one. Contrast is checked by a test, because glare at a boat ramp is real.
 

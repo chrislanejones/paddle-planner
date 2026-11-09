@@ -1,7 +1,7 @@
 {
   "name": "Paddle Tide & Current Planner",
   "short_name": "Paddle Planner",
-  "description": "Plan kayak and paddleboard trips around slack water in St. Augustine with NOAA tide and current predictions.",
+  "description": "Plan kayak and paddleboard trips around slack water from Jacksonville to Palm Coast with NOAA tide and current predictions.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

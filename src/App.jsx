@@ -16,6 +16,7 @@ import {
 import { useForecast, useWind } from './hooks/useForecast.js'
 
 const DURATIONS = [1.5, 2, 3, 4, 5]
+const REGIONS = ['Duval County', 'St. Johns County', 'Flagler County'] // north to south
 const TEN_MINUTES = 600_000
 const NO_EVENTS = []
 const NO_STATION = 'none'
@@ -83,7 +84,7 @@ export default function App() {
   const minutes = clamp(manualMinutes ?? autoMinutes, 0, maxMinutes)
   const time = day + minutes * 60_000
 
-  const { toward, inlet } = useMemo(() => outTowardInlet(route.pts), [route])
+  const { toward, inlet } = useMemo(() => outTowardInlet(route.pts, route.inlet), [route])
   const stationMarker = useMemo(() => {
     if (cleared) return null
     const v = valueAt(events, time)
@@ -166,7 +167,7 @@ export default function App() {
           <Waves size={28} aria-hidden="true" />
           <div>
             <h1>Paddle Tide &amp; Current Planner</h1>
-            <p>St. Augustine, FL · NOAA predictions · Eastern time</p>
+            <p>Northeast Florida · NOAA predictions · Eastern time</p>
           </div>
         </div>
         <ThemeToggle />
@@ -188,7 +189,12 @@ export default function App() {
             <label className="field-label" htmlFor="route">Route</label>
             <select id="route" value={cleared ? '' : routeId} onChange={e => chooseRoute(e.target.value)}>
               {cleared && <option value="" disabled>Choose a route…</option>}
-              {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {REGIONS.map(region => (
+                <optgroup key={region} label={region}>
+                  {PRESETS.filter(r => r.region === region).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </optgroup>
+              ))}
+              {customRoute && <optgroup label="Yours"><option value={customRoute.id}>{customRoute.name}</option></optgroup>}
             </select>
           </div>
           {drawing && (
@@ -212,6 +218,7 @@ export default function App() {
             <p className="hint">
               Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
               return on the <b>{toward ? 'flood' : 'ebb'}</b>. Lines are approximate. Draw your own for an exact path.
+            {route.note && <> <b>{route.note}</b></>}
             </p>
             <details className="advanced">
               <summary>Current source: {stationLabel}</summary>

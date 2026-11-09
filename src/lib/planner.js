@@ -77,8 +77,10 @@ export function routeMid(pts) {
   }
 }
 export const nearestBy = (list, location) => list.map(s => ({ ...s, d: km(location, s) })).sort((a, b) => a.d - b.d)
-export function outTowardInlet(pts) {
-  const inlet = nearestBy(INLETS, routeMid(pts))[0]
+// Water reaches a river route through one specific inlet, which is not always the nearest by straight line
+// (the St. Johns River fills through Mayport), so a route may name its inlet.
+export function outTowardInlet(pts, inletName) {
+  const inlet = INLETS.find(i => i.name === inletName) ?? nearestBy(INLETS, routeMid(pts))[0]
   return { toward: km(point(pts.at(-1)), inlet) < km(point(pts[0]), inlet), inlet }
 }
 export function bearing(a, b) {
@@ -140,7 +142,7 @@ export function findTurns(events) {
 
 export function computeWindows({ events, wind, route, day, nextDay, duration }) {
   const half = duration * HOUR / 2
-  const { toward } = outTowardInlet(route.pts)
+  const { toward } = outTowardInlet(route.pts, route.inlet)
   const mid = routeMid(route.pts)
   const sun = sunTimes(day, mid.lat, mid.lng)
   return findTurns(events).filter(turn => turn.from === (toward ? -1 : 1)).map(turn => {

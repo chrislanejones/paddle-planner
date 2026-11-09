@@ -9,7 +9,7 @@ export default function Readout({ time, route, events, tides, wind, windStatus, 
   const height = valueAt(tides, time)
   const before = valueAt(tides, time - TEN_MINUTES)
   const forecast = windAt(wind, time)
-  const { toward } = outTowardInlet(route.pts)
+  const { toward } = outTowardInlet(route.pts, route.inlet)
   const slack = Math.abs(v ?? 0) < (approx ? 0.15 : 0.2)
 
   let current = 'No data'

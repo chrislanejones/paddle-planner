@@ -74,6 +74,15 @@ test('outTowardInlet follows the geometry of each preset', () => {
   assert.equal(outTowardInlet(route('matanzas').pts).inlet.name, 'Matanzas Inlet')
 })
 
+test('St. Johns River routes use Mayport, not the nearest inlet by straight line', () => {
+  for (const id of ['riverfront', 'ortega', 'clapboard', 'pablo']) {
+    const r = route(id)
+    assert.equal(outTowardInlet(r.pts, r.inlet).inlet.name, 'St. Johns River Inlet (Mayport)', id)
+  }
+  // Without the override the downtown riverfront would pick Fort George Inlet.
+  assert.equal(outTowardInlet(route('riverfront').pts).inlet.name, 'Fort George Inlet')
+})
+
 test('routeMid handles odd and even point counts', () => {
   assert.deepEqual(routeMid([[0, 0], [1, 1], [2, 2]]), { lat: 1, lng: 1 })
   assert.deepEqual(routeMid([[0, 0], [2, 4]]), { lat: 1, lng: 2 })
