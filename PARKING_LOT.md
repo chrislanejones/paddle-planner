@@ -9,12 +9,13 @@
   tile host later, it would be more reliable.
 - Map-label and route colors in `MapView.jsx` are fixed hex values mirroring the tokens; consider reading them
   from CSS variables.
-- Routes: nineteen presets now. Guana, Anastasia, Palm Coast, Summer Haven and all eight Duval routes were traced from
-  the NOAA chart because OpenStreetMap's Overpass servers were down. When Overpass is back, confirm real launch
-  points (Guana Lake dam, Anastasia, Palm Coast, Marineland, Sisters Creek, Pumpkin Hill, Ortega, Clapboard Creek
-  and Dutton Island) and pull the ramp coordinates into each route's first point.
-- Duval gaps: Huguenot Memorial Park and the Mayport inlet (strong current and ship traffic), Julington Creek,
-  Black Creek, the Trout River, Hanna Park, and the open St. Johns River. Add with care and a safety note.
+- Routes: twenty-eight presets now. Everything added since Guana was traced from the NOAA chart because OpenStreetMap's
+  Overpass servers were down. When Overpass is back, confirm real launch points (Guana Lake dam, Anastasia, Palm Coast,
+  Marineland, Sisters Creek, Pumpkin Hill, Ortega, Clapboard Creek, Dutton Island, Fort Clinch, Egans Creek) and pull the
+  ramp coordinates into each route's first point.
+- Duval gaps: Huguenot Memorial Park and the Mayport inlet (strong current and ship traffic), Julington Creek (the chart
+  covers only about 1 km of it), Simpson Creek and the Cedar River (both failed the chart check), Black Creek, the Trout
+  River, Hanna Park, and the open St. Johns River. Nassau gaps: Egans Creek, Lofton Creek, Amelia Island State Park.
 - The Duval routes run 4 to 6.5 km one way, longer than the St. Augustine ones. Trim or add shorter variants.
 - The route picker groups by county. The St. Johns River routes name Mayport as their inlet because water reaches
   them there, not through the nearest inlet by straight line. Re-check that if more river routes go in.

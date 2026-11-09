@@ -12,7 +12,7 @@ React 19 + Vite, Leaflet for the map, plain CSS with design tokens, Phosphor ico
 
 ## Users
 
-Kayakers and stand-up paddleboarders in Northeast Florida, from Jacksonville to Palm Coast. They plan the night before on a desktop, then re-check on a phone at a launch ramp or dock, often early morning, in glare, with wet hands. (Inferred from the app's content; not interviewed.)
+Kayakers and stand-up paddleboarders in Northeast Florida, from the Georgia line to Palm Coast. They plan the night before on a desktop, then re-check on a phone at a launch ramp or dock, often early morning, in glare, with wet hands. (Inferred from the app's content; not interviewed.)
 
 ## Product Purpose
 
@@ -28,11 +28,11 @@ NOAA CO-OPS tide and current predictions, NWS hourly wind, NOAA Office of Coast 
 
 ## Capabilities and Constraints
 
-- Nineteen preset routes (a region picker, then that region's routes) plus one custom route drawn on the map, saved in the browser.
+- Twenty-eight preset routes (a region picker, then that region's routes) plus one custom route drawn on the map, saved in the browser.
 - Trip length 1.5 to 5 hours, seven days out, daylight and wind per window.
 - Falls back to tide-based estimates when no current station is within range.
 - No backend and no accounts. An optional ArcGIS API key is stored only in the visitor's browser.
-- Routes run from Nassau Sound to Palm Coast. Undecided: regions farther north or south, and the lower St. Johns River.
+- Routes run from the St. Marys River to Palm Coast. Undecided: regions farther north or south, and the lower St. Johns River.
 
 ## Brand Commitments
 

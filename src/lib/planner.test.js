@@ -75,7 +75,7 @@ test('outTowardInlet follows the geometry of each preset', () => {
 })
 
 test('St. Johns River routes use Mayport, not the nearest inlet by straight line', () => {
-  for (const id of ['riverfront', 'ortega', 'clapboard', 'pablo']) {
+  for (const id of ['riverfront', 'ortega', 'clapboard', 'pablo', 'ribault', 'broward']) {
     const r = route(id)
     assert.equal(outTowardInlet(r.pts, r.inlet).inlet.name, 'St. Johns River Inlet (Mayport)', id)
   }

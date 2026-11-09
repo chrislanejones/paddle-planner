@@ -17,7 +17,7 @@ import {
 import { useForecast, useObserved, useWind } from './hooks/useForecast.js'
 
 const DURATIONS = [1.5, 2, 3, 4, 5]
-const REGIONS = ['Duval County', 'St. Johns County', 'Flagler County'] // north to south
+const REGIONS = ['Nassau County', 'Duval County', 'St. Johns County', 'Flagler County'] // north to south
 const YOURS = 'Your route'
 const TEN_MINUTES = 600_000
 const NO_EVENTS = []
