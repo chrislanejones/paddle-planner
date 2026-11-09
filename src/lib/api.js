@@ -4,6 +4,7 @@ import { storage } from './storage.js'
 const API = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter'
 const METADATA = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=currentpredictions'
 const predictionCache = new Map()
+const observedCache = new Map()
 
 export async function getJSON(url, signal, attempts = 2) {
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -107,4 +108,19 @@ export async function loadWind(mid, signal, refresh = false) {
   }))
   storage.set(key, { t: Date.now(), w: wind })
   return wind
+}
+
+// Live water level at a gauge for the last three hours, in feet above MLLW, the same datum as the predictions.
+export async function loadObserved(gauge, signal) {
+  const cached = observedCache.get(gauge.id)
+  if (cached && Date.now() - cached.at < 5 * 60_000) return cached.data
+  const url = `${API}?${new URLSearchParams({
+    product: 'water_level', application: 'paddle_planner', station: gauge.id, range: '3',
+    datum: 'MLLW', units: 'english', time_zone: 'gmt', format: 'json',
+  })}`
+  const data = await getJSON(url, signal)
+  const readings = (data.data || []).map(r => ({ t: parseNoaa(r.t), v: +r.v }))
+    .filter(r => Number.isFinite(r.t) && Number.isFinite(r.v)).sort((a, b) => a.t - b.t)
+  observedCache.set(gauge.id, { at: Date.now(), data: readings })
+  return readings
 }

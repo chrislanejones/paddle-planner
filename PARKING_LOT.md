@@ -25,3 +25,7 @@
   `scripts/` if more routes get added. Pitfall found: keep the image aspect ratio exact or the server shifts the bbox.
 - Launch windows only list slack turns where the current carries you out, so the other slack of each tide is
   hidden. A "return-first" mode could list those.
+- Live water level: NOAA has no gauge between Mayport and Daytona, so St. Augustine routes borrow Mayport (57 km) and
+  Palm Coast shows nothing. Re-check the `waterlevels` station list from time to time; a St. Augustine gauge would help most.
+- Overlay the measured last-hour line on the tide chart as a dotted trace. Left off because the chart is exactly how
+  it was approved.

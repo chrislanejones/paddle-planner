@@ -17,6 +17,7 @@ Mirrors: [GitHub](https://github.com/chrislanejones/paddle-planner) and [Codeber
 - **The tide and current chart.** Drag across it to scrub through the day. The readout under it tells you the current, the tide height and the wind at that minute, and which leg the current is helping.
 - **The map.** NOAA's nautical chart by default, with your route drawn on top and the inlet hazard marked where it is. Switch to OpenStreetMap or ArcGIS if you want.
 - **Nineteen preset routes and one of your own.** Pick a region first (Duval, St. Johns or Flagler), then one of its popular routes. Duval has Sisters Creek, the Fort George River, Pablo Creek, Clapboard Creek, Pumpkin Hill Creek, Nassau Sound, the Ortega River and the Jacksonville riverfront. St. Johns County has the St. Augustine bayfront, Salt Run, the Tolomato, Guana, the San Sebastian River, Moultrie Creek, Anastasia Island, Matanzas, Summer Haven and Pellicer Creek. Flagler has Palm Coast. Draw a custom route on the map and it's saved in your browser.
+- **The last hour, measured.** A live NOAA gauge reading: the water level, whether it's rising or falling and by how much over the last hour, and how it compares with the prediction. It uses the nearest gauge that's close enough to mean something, and says how far away it is. There's no live gauge near St. Augustine or Palm Coast, so those routes borrow Mayport or show nothing.
 - **Daylight and wind per window.** Windows that start or end in the dark say so.
 - **Light and dark themes.** It follows your system, or you can pick one. Contrast is checked by a test, because glare at a boat ramp is real.
 
@@ -45,6 +46,7 @@ Then open the address Vite prints. Other scripts:
 |---|---|
 | Tide heights and times | NOAA CO-OPS predictions |
 | Currents and slack water | NOAA CO-OPS current predictions, nearest station to the route |
+| Live water level | NOAA CO-OPS gauges at Mayport, Fernandina, Dames Point, Jacksonville and Buckman Bridge |
 | Hourly wind | National Weather Service forecast |
 | Chart tiles | NOAA Office of Coast Survey nautical chart |
 

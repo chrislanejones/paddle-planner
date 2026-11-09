@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   DAY, HOUR, computeWindows, currentEvents, findTurns, forecastDays, km, nearbyStations, offsetLine,
-  outTowardInlet, parseNoaa, routeMid, stationKey, sunTimes, tideEvents, valueAt, windAt, ymd,
+  lastHourSummary, nearestGauge, outTowardInlet, parseNoaa, routeMid, stationKey, sunTimes, tideEvents, valueAt, windAt, ymd,
 } from './planner.js'
 import { PRESETS } from './routes.js'
 
@@ -140,4 +140,29 @@ test('computeWindows skips trips the predictions cannot cover and attaches the w
   assert.deepEqual(computeWindows({ events, wind, route: route('bayfront'), day, nextDay: day + DAY, duration: 3 }), [])
   const [w] = computeWindows({ events, wind, route: route('bayfront'), day, nextDay: day + DAY, duration: 1 })
   assert.equal(w.wind.mph, 14)
+})
+
+test('nearestGauge returns the closest live gauge, or null when none is within range', () => {
+  const gauges = [
+    { id: 'coast', name: 'Mayport', lat: 30.398, lng: -81.428, range: 70 },
+    { id: 'river', name: 'Buckman Bridge', lat: 30.192, lng: -81.689, range: 30 },
+  ]
+  assert.equal(nearestGauge(gauges, { lat: 30.32, lng: -81.44 }).id, 'coast')
+  // St. Augustine is 49 km from the river gauge (too far for a river) and 56 km from the coastal one (fine).
+  assert.equal(nearestGauge(gauges, { lat: 29.906, lng: -81.304 }).id, 'coast')
+  assert.equal(nearestGauge(gauges, { lat: 29.60, lng: -81.20 }), null) // Palm Coast is far from both
+})
+
+test('lastHourSummary reports level, change over the hour, and freshness', () => {
+  const t0 = Date.UTC(2026, 10, 9, 12, 0)
+  const readings = Array.from({ length: 31 }, (_, i) => ({ t: t0 + i * 6 * 60_000, v: 2 - i * 0.02 })) // 3 hours, falling
+  const s = lastHourSummary(readings, t0 + 3 * HOUR + 12 * 60_000)
+  assert.equal(s.trend, 'falling')
+  assert.ok(Math.abs(s.change - -0.2) < 0.01, `change was ${s.change}`)
+  assert.equal(s.ageMin, 12 + 0)
+  assert.equal(lastHourSummary([], t0), null)
+  const flat = readings.map(r => ({ ...r, v: 3 }))
+  assert.equal(lastHourSummary(flat, t0).trend, 'steady')
+  // Only 20 minutes of data: not enough to claim an hourly change.
+  assert.equal(lastHourSummary(readings.slice(0, 4), t0).change, null)
 })

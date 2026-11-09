@@ -3,17 +3,18 @@ import MapView from './components/MapView.jsx'
 import Chart from './components/Chart.jsx'
 import Readout from './components/Readout.jsx'
 import Windows from './components/Windows.jsx'
+import LastHour from './components/LastHour.jsx'
 import ChipGroup from './components/ChipGroup.jsx'
 import MapSettings from './components/MapSettings.jsx'
 import ThemeToggle from './components/ThemeToggle.jsx'
 import { ArrowCounterClockwise, Check, CheckCircle, Info, PencilSimple, TrashSimple, Warning, WarningOctagon, Waves, X } from './components/icons.js'
 import { loadCurrentStations } from './lib/api.js'
-import { PRESETS, TIDE_STATIONS } from './lib/routes.js'
+import { GAUGES, PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
 import {
-  computeWindows, fmtDay, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
+  computeWindows, fmtDay, fmtDayChip, forecastDays, nearbyStations, nearestBy, nearestGauge, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
 } from './lib/planner.js'
-import { useForecast, useWind } from './hooks/useForecast.js'
+import { useForecast, useObserved, useWind } from './hooks/useForecast.js'
 
 const DURATIONS = [1.5, 2, 3, 4, 5]
 const REGIONS = ['Duval County', 'St. Johns County', 'Flagler County'] // north to south
@@ -65,6 +66,8 @@ export default function App() {
 
   const forecast = useForecast(tideStation, station, days, revision)
   const wind = useWind(mid, revision)
+  const gauge = useMemo(() => nearestGauge(GAUGES, mid), [mid])
+  const observed = useObserved(gauge, revision)
   const events = forecast.data?.events ?? NO_EVENTS
   const tides = forecast.data?.tides ?? NO_EVENTS
   const approx = forecast.data?.approx ?? true
@@ -250,6 +253,7 @@ export default function App() {
               onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
             <h2>Conditions</h2>
+          <LastHour gauge={gauge} observed={observed} tides={tides} predictionStationId={tideStation.id} />
             <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
               approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
             <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}

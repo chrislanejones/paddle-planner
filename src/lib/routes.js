@@ -5,6 +5,16 @@ export const INLETS = [
   {name:'Fort George Inlet',   lat:30.4198, lng:-81.4187},
   {name:'Nassau Sound',        lat:30.5130, lng:-81.4480},
 ];
+// NOAA stations that report live 6-minute water levels. None sit near St. Augustine or Palm Coast.
+// `range` is how far away a reading still says something useful: a coastal gauge follows the ocean tide for
+// a long way along the coast, but a river gauge runs hours behind it, so it only speaks for nearby water.
+export const GAUGES = [
+  {id:'8720218', name:'Mayport (Bar Pilots Dock)',  lat:30.3982, lng:-81.4279, range:70},
+  {id:'8720030', name:'Fernandina Beach',           lat:30.6714, lng:-81.4658, range:70},
+  {id:'8720219', name:'Dames Point',                lat:30.3867, lng:-81.5583, range:30},
+  {id:'8720226', name:'Jacksonville, Southbank Riverwalk', lat:30.3200, lng:-81.6583, range:30},
+  {id:'8720357', name:'Buckman Bridge, I-295',      lat:30.1924, lng:-81.6889, range:30},
+];
 export const TIDE_STATIONS = [
   {id:'8720576', name:'St. Augustine, city dock', lat:29.8917, lng:-81.3100},
   {id:'8720587', name:'St. Augustine Beach',      lat:29.8567, lng:-81.2650},

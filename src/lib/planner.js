@@ -175,3 +175,23 @@ export function darkEnds(trip, sun) {
   const dark = t => t < sun.rise || t > sun.set
   return { launch: dark(trip.launch), back: dark(trip.back) }
 }
+
+// The nearest live gauge that is still close enough, by its own range, to say something about this location.
+export function nearestGauge(gauges, location) {
+  return nearestBy(gauges, location).find(g => g.d <= (g.range ?? 30)) ?? null
+}
+
+// Reads live gauge readings ([{t, v}] in feet, oldest first) into what a paddler wants to know right now:
+// the level, which way it moved over the last hour, and how fresh the reading is.
+export function lastHourSummary(readings, now = Date.now()) {
+  const latest = readings.at(-1)
+  if (!latest) return null
+  const hourAgo = readings.reduce((best, r) => (Math.abs(r.t - (latest.t - HOUR)) < Math.abs(best.t - (latest.t - HOUR)) ? r : best))
+  const span = latest.t - hourAgo.t
+  const change = span >= 0.75 * HOUR ? latest.v - hourAgo.v : null
+  return {
+    level: latest.v, at: latest.t, ageMin: Math.max(0, Math.round((now - latest.t) / 60_000)),
+    change, trend: change == null ? null : Math.abs(change) < 0.05 ? 'steady' : change > 0 ? 'rising' : 'falling',
+    series: readings,
+  }
+}
