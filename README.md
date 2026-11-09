@@ -4,6 +4,8 @@ Pick a launch time so your paddle rides the tail of one current out and the star
 
 **Live site: https://chrislanejones.github.io/paddle-planner/**
 
+![The planner on the NOAA chart: a route near St. Augustine Inlet with launch, turn and return times, and the day's launch windows in the side panel](docs/paddle-planner.webp)
+
 It's built for kayakers and stand-up paddleboarders around St. Augustine, Florida. A tide table gives you times. This gives you the whole out-and-back trip and where it sits in the day: when to launch, when to turn, when to be back, whether it's daylight, and how hard the wind is blowing.
 
 Mirrors: [GitHub](https://github.com/chrislanejones/paddle-planner) and [Codeberg](https://codeberg.org/chrislanejones/paddle-planner).

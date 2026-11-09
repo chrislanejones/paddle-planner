@@ -30,11 +30,11 @@ function buildBasemaps(key) {
   })
   // NOAA's server intermittently answers a tile with an HTML "Web Adaptor could not access any server
   // machines" page (HTTP 200), which the browser blocks as a bad image and Leaflet leaves as a hole.
-  // Reproduced at roughly 1 in 8 requests under a normal pan, so retry with exponential back-off.
+  // Reproduced at roughly 1 in 8 requests under a normal pan, so retry with a short exponential back-off (150 ms, then doubling, capped at 4 s).
   chart.on('tileerror', ({ tile }) => {
     tile.retries = (tile.retries ?? 0) + 1
     if (tile.retries > MAX_TILE_RETRIES) return
-    const delay = Math.min(8000, 250 * 2 ** (tile.retries - 1)) * (0.75 + Math.random() * 0.5)
+    const delay = Math.min(4000, 150 * 2 ** (tile.retries - 1)) * (0.75 + Math.random() * 0.5)
     setTimeout(() => {
       if (tile.isConnected) tile.src = `${tile.src.split('&_r=')[0]}&_r=${Date.now()}`
     }, delay)
