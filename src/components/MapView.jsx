@@ -109,7 +109,12 @@ export default function MapView({ route, window: trip, drawing, drawPoints, onDr
   }, [drawing])
 
   useEffect(() => {
-    if (route.pts.length > 1) mapRef.current.fitBounds(L.polyline(route.pts).getBounds(), { padding: [60, 60], maxZoom: 14 })
+    const map = mapRef.current
+    if (route.pts.length < 2) return
+    const bounds = L.polyline(route.pts).getBounds()
+    // A route the visitor just drew is already on screen: leave their zoom and position alone.
+    if (route.id === 'custom' && map.getBounds().contains(bounds)) return
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
   }, [route])
 
   useEffect(() => {
