@@ -59,7 +59,7 @@ function buildBasemaps(key) {
 
 // Imperative Leaflet wrapped in effects. Each effect owns one layer group so
 // a change in one prop never rebuilds the rest of the map.
-export default function MapView({ route, window: trip, drawing, drawPoints, onDrawPoint, stationMarker, arcgisKey }) {
+export default function MapView({ route, visible = true, window: trip, drawing, drawPoints, onDrawPoint, stationMarker, arcgisKey }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const layersRef = useRef({})
@@ -110,17 +110,17 @@ export default function MapView({ route, window: trip, drawing, drawPoints, onDr
 
   useEffect(() => {
     const map = mapRef.current
-    if (route.pts.length < 2) return
+    if (!visible || route.pts.length < 2) return
     const bounds = L.polyline(route.pts).getBounds()
     // A route the visitor just drew is already on screen: leave their zoom and position alone.
     if (route.id === 'custom' && map.getBounds().contains(bounds)) return
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
-  }, [route])
+  }, [route, visible])
 
   useEffect(() => {
     const layer = layersRef.current.route
     layer.clearLayers()
-    if (drawing || route.pts.length < 2) return
+    if (!visible || drawing || route.pts.length < 2) return
     const pts = route.pts
     const back = offsetLine(pts.slice().reverse(), 45)
     L.polyline(pts, { color: ROUTE.casing, weight: 10, opacity: 0.9, interactive: false }).addTo(layer)
@@ -141,7 +141,7 @@ export default function MapView({ route, window: trip, drawing, drawPoints, onDr
       .bindTooltip(startLabel, { permanent: true, direction: 'left', className: 'lbl out', offset: [-10, 0] }).addTo(layer)
     L.marker(pts.at(-1), { icon: L.divIcon({ className: 'turn-mark', html: '<span class="turn-diamond"></span>', iconSize: [18, 18], iconAnchor: [9, 9] }) })
       .bindTooltip(endLabel, { permanent: true, direction: endBelow ? 'bottom' : 'top', className: 'lbl turn', offset: [0, endBelow ? 14 : -14] }).addTo(layer)
-  }, [route, trip, drawing])
+  }, [route, visible, trip, drawing])
 
   useEffect(() => {
     const layer = layersRef.current.draw

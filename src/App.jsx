@@ -34,6 +34,7 @@ export default function App() {
   const [stations, setStations] = useState([])
   const [stationChoice, setStationChoice] = useState(null) // null = nearest within 15 km
   const [drawing, setDrawing] = useState(false)
+  const [cleared, setCleared] = useState(false) // true = no route on the map
   const [drawPoints, setDrawPoints] = useState([])
   const [pickedWindow, setPickedWindow] = useState(null) // null = first daylight window
   const [manualMinutes, setManualMinutes] = useState(null) // null = follow the selected window
@@ -84,6 +85,7 @@ export default function App() {
 
   const { toward, inlet } = useMemo(() => outTowardInlet(route.pts), [route])
   const stationMarker = useMemo(() => {
+    if (cleared) return null
     const v = valueAt(events, time)
     const target = approx ? tideStation : station
     if (!forecast.data || !target || v == null) return null
@@ -93,11 +95,12 @@ export default function App() {
       label: approx ? (slack ? 'slack' : v > 0 ? 'flood' : 'ebb') : `${Math.abs(v).toFixed(1)} kn ${v >= 0 ? 'flood' : 'ebb'}`,
       dir: approx ? NaN : v >= 0 ? forecast.data.dirs.flood : forecast.data.dirs.ebb,
     }
-  }, [forecast.data, events, time, approx, tideStation, station])
+  }, [cleared, forecast.data, events, time, approx, tideStation, station])
 
   const resetPicks = () => { setPickedWindow(null); setManualMinutes(null) }
   const chooseRoute = value => {
     setDrawing(false)
+    setCleared(false)
     setRouteId(value)
     setStationChoice(null)
     resetPicks()
@@ -108,16 +111,23 @@ export default function App() {
     const drawn = { id: 'custom', name: 'My route', pts: drawPoints }
     storage.set('pp_custom_route', drawn)
     setCustomRoute(drawn)
+    setCleared(false)
     setRouteId('custom')
     setStationChoice(null)
     setDrawing(false)
     resetPicks()
   }
 
-  const clearCustomRoute = () => {
-    storage.remove('pp_custom_route')
-    setCustomRoute(null)
-    if (routeId === 'custom') { setRouteId(PRESETS[0].id); setStationChoice(null); resetPicks() }
+  // Clears whatever route is on the map. A drawn route is also deleted from this browser; a preset just hides.
+  const clearRoute = () => {
+    if (routeId === 'custom') {
+      storage.remove('pp_custom_route')
+      setCustomRoute(null)
+      setRouteId(PRESETS[0].id)
+    }
+    setStationChoice(null)
+    setCleared(true)
+    resetPicks()
   }
 
   // Status uses an icon plus a tinted field (never a colored side stripe), so state never relies on color alone.
@@ -162,7 +172,7 @@ export default function App() {
         <ThemeToggle />
       </header>
       <div className="wrap">
-        <MapView route={route} window={trip} drawing={drawing} drawPoints={drawPoints}
+        <MapView route={route} visible={!cleared} window={trip} drawing={drawing} drawPoints={drawPoints}
           onDrawPoint={p => setDrawPoints(points => [...points, p])} stationMarker={stationMarker} arcgisKey={arcgisKey} />
         <section id="panel" aria-label="Trip planner">
           <ChipGroup label="Day" note={monthNote} value={dayIdx} className="days"
@@ -176,7 +186,8 @@ export default function App() {
             onChange={h => { setDuration(h); resetPicks() }} />
           <div className="field">
             <label className="field-label" htmlFor="route">Route</label>
-            <select id="route" value={routeId} onChange={e => chooseRoute(e.target.value)}>
+            <select id="route" value={cleared ? '' : routeId} onChange={e => chooseRoute(e.target.value)}>
+              {cleared && <option value="" disabled>Choose a route…</option>}
               {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
@@ -191,44 +202,50 @@ export default function App() {
           {!drawing && (
             <div className="draw-bar">
               <button type="button" onClick={startDrawing}><PencilSimple size={18} aria-hidden="true" />Draw my own route</button>
-              {customRoute && <button type="button" onClick={clearCustomRoute}><TrashSimple size={18} aria-hidden="true" />Clear my route</button>}
+              {!cleared && <button type="button" onClick={clearRoute}><TrashSimple size={18} aria-hidden="true" />Clear route</button>}
             </div>
           )}
-          <p className="hint">
-            Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
-            return on the <b>{toward ? 'flood' : 'ebb'}</b>. Lines are approximate. Draw your own for an exact path.
-          </p>
-          <details className="advanced">
-            <summary>Current source: {stationLabel}</summary>
-            <div className="field">
-              <label className="field-label" htmlFor="station">Current station</label>
-              <select id="station" value={stationChoice ?? (station ? stationKey(station) : NO_STATION)}
-                onChange={e => { setStationChoice(e.target.value); resetPicks() }}>
-                {stationOptions.map(s => <option key={stationKey(s)} value={stationKey(s)}>{s.name}{s.bin != null ? ` (bin ${s.bin})` : ''} — {s.d.toFixed(1)} km</option>)}
-                <option value={NO_STATION}>Estimate from tides only</option>
-              </select>
-            </div>
-          </details>
-          {status}
+          {cleared ? (
+            <p className="empty">No route on the map. Pick one above, or draw your own.</p>
+          ) : (
+            <>
+            <p className="hint">
+              Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
+              return on the <b>{toward ? 'flood' : 'ebb'}</b>. Lines are approximate. Draw your own for an exact path.
+            </p>
+            <details className="advanced">
+              <summary>Current source: {stationLabel}</summary>
+              <div className="field">
+                <label className="field-label" htmlFor="station">Current station</label>
+                <select id="station" value={stationChoice ?? (station ? stationKey(station) : NO_STATION)}
+                  onChange={e => { setStationChoice(e.target.value); resetPicks() }}>
+                  {stationOptions.map(s => <option key={stationKey(s)} value={stationKey(s)}>{s.name}{s.bin != null ? ` (bin ${s.bin})` : ''} — {s.d.toFixed(1)} km</option>)}
+                  <option value={NO_STATION}>Estimate from tides only</option>
+                </select>
+              </div>
+            </details>
+            {status}
 
-          <h2>Launch windows</h2>
-          <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
-            loading={forecast.status === 'loading' && !drawing}
-            onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
+            <h2>Launch windows</h2>
+            <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
+              loading={forecast.status === 'loading' && !drawing}
+              onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
-          <h2>Conditions</h2>
-          <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
-            approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
-          <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}
-            window={trip} minutes={minutes} max={maxMinutes} now={openedAt} onMinutes={setManualMinutes} />
-          <ul className="legend" aria-label="Chart legend">
-            <li><i className="sw sw-tide" />Tide height</li>
-            <li><i className="sw sw-current" />Current (above line = flood, below = ebb)</li>
-            <li><i className="sw sw-out" />Out leg</li>
-            <li><i className="sw sw-back" />Return leg</li>
-            <li><i className="sw sw-slack" />Turn at slack water</li>
-            <li><i className="sw sw-night" />Night</li>
-          </ul>
+            <h2>Conditions</h2>
+            <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
+              approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
+            <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}
+              window={trip} minutes={minutes} max={maxMinutes} now={openedAt} onMinutes={setManualMinutes} />
+            <ul className="legend" aria-label="Chart legend">
+              <li><i className="sw sw-tide" />Tide height</li>
+              <li><i className="sw sw-current" />Current (above line = flood, below = ebb)</li>
+              <li><i className="sw sw-out" />Out leg</li>
+              <li><i className="sw sw-back" />Return leg</li>
+              <li><i className="sw sw-slack" />Turn at slack water</li>
+              <li><i className="sw sw-night" />Night</li>
+            </ul>
+            </>
+          )}
 
           <MapSettings hasKey={Boolean(arcgisKey)} onChange={() => setArcgisKey(resolveArcgisKey())} />
 
