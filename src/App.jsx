@@ -3,12 +3,13 @@ import MapView from './components/MapView.jsx'
 import Chart from './components/Chart.jsx'
 import Readout from './components/Readout.jsx'
 import Windows from './components/Windows.jsx'
+import ChipGroup from './components/ChipGroup.jsx'
 import MapSettings from './components/MapSettings.jsx'
 import { loadCurrentStations } from './lib/api.js'
 import { PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
 import {
-  computeWindows, fmtDay, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, valueAt,
+  computeWindows, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, valueAt,
 } from './lib/planner.js'
 import { useForecast, useWind } from './hooks/useForecast.js'
 
@@ -112,107 +113,112 @@ export default function App() {
 
   let status
   if (drawing) {
-    status = <div id="status" role="status">Tap the map: first tap = launch spot, last tap = turnaround spot.</div>
+    status = <div className="status info" role="status">Tap the map: first tap = launch spot, last tap = turnaround spot.</div>
   } else if (forecast.status === 'loading') {
-    status = <div id="status" role="status">Loading NOAA predictions…</div>
+    status = <div className="status info" role="status">Loading NOAA predictions…</div>
   } else if (forecast.status === 'error') {
     status = (
-      <div id="status" role="status">
-        NOAA error: {forecast.error}{' '}
+      <div className="status error" role="alert">
+        <span>NOAA error: {forecast.error}</span>
         <button type="button" onClick={() => setRevision(r => r + 1)}>Retry</button>
       </div>
     )
   } else {
     const warnings = forecast.data.warnings
-    status = (
-      <div id="status" role="status" className={!approx && !warnings.length ? 'ok' : ''}>
-        {warnings.length
-          ? warnings.map(w => <div key={w}>{w}</div>)
-          : `${station ? `Currents: ${station.name} (${station.d.toFixed(1)} km away) · ` : ''}Tides: ${tideStation.name}`}
-      </div>
-    )
+    status = warnings.length
+      ? <div className="status warn" role="status">{warnings.map(w => <p key={w}>{w}</p>)}</div>
+      : (
+        <div className="status ok" role="status">
+          {station ? `Currents: ${station.name} (${station.d.toFixed(1)} km away) · ` : ''}Tides: {tideStation.name}
+        </div>
+      )
   }
+
+  const stationLabel = station ? station.name : 'tide-based estimate'
 
   return (
     <>
-      <header>
-        <h1>🛶 Paddle Tide &amp; Current Planner</h1>
-        <span>St. Augustine · NOAA predictions · all times Eastern</span>
+      <header className="app-header">
+        <h1><span aria-hidden="true">🛶</span> Paddle Tide &amp; Current Planner</h1>
+        <p>St. Augustine · NOAA predictions · all times Eastern</p>
       </header>
       <div className="wrap">
         <MapView route={route} window={trip} drawing={drawing} drawPoints={drawPoints}
           onDrawPoint={p => setDrawPoints(points => [...points, p])} stationMarker={stationMarker} arcgisKey={arcgisKey} />
-        <section id="panel">
-          <div className="controls">
-            <label>Day
-              <select value={dayIdx} onChange={e => { setDayIdx(+e.target.value); resetPicks() }}>
-                {days.slice(0, 7).map((d, i) => (
-                  <option key={d} value={i}>{i === 0 ? 'Today · ' : i === 1 ? 'Tomorrow · ' : ''}{fmtDay(d)}</option>
-                ))}
-              </select>
-            </label>
-            <label>Trip length (out + back)
-              <select value={duration} onChange={e => { setDuration(+e.target.value); resetPicks() }}>
-                {DURATIONS.map(h => <option key={h} value={h}>{h} hours</option>)}
-              </select>
-            </label>
-            <label className="full">Route
-              <select value={drawing ? DRAW_ROUTE : routeId} onChange={e => chooseRoute(e.target.value)}>
-                {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                <option value={DRAW_ROUTE}>✏️ Draw my own route…</option>
-              </select>
-            </label>
-            <label className="full">Current station (nearest NOAA prediction points)
-              <select value={stationChoice ?? (station ? stationKey(station) : NO_STATION)}
+        <section id="panel" aria-label="Trip planner">
+          <ChipGroup label="Day" value={dayIdx} className="days"
+            options={days.slice(0, 7).map((d, i) => {
+              const { weekday, date } = fmtDayChip(d)
+              return { value: i, label: i === 0 ? 'Today' : weekday, sub: date }
+            })}
+            onChange={i => { setDayIdx(i); resetPicks() }} />
+          <ChipGroup label="Trip length (out and back)" value={duration} className="lengths"
+            options={DURATIONS.map(h => ({ value: h, label: `${h} h` }))}
+            onChange={h => { setDuration(h); resetPicks() }} />
+          <div className="field">
+            <label className="field-label" htmlFor="route">Route</label>
+            <select id="route" value={drawing ? DRAW_ROUTE : routeId} onChange={e => chooseRoute(e.target.value)}>
+              {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <option value={DRAW_ROUTE}>✏️ Draw my own route…</option>
+            </select>
+          </div>
+          {drawing && (
+            <div className="draw-bar">
+              <button type="button" onClick={() => setDrawPoints(points => points.slice(0, -1))} disabled={!drawPoints.length}>↶ Undo point</button>
+              <button type="button" className="primary" onClick={finishDrawing} disabled={drawPoints.length < 2}>✓ Finish route</button>
+              <button type="button" onClick={() => setDrawing(false)}>✕ Cancel</button>
+            </div>
+          )}
+          <p className="hint">
+            Out leg heads <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: ride the <b>{toward ? 'ebb' : 'flood'}</b> out
+            and the <b>{toward ? 'flood' : 'ebb'}</b> back. Route lines are approximate; draw your own for an exact path.
+          </p>
+          <details className="advanced">
+            <summary>Current data: {stationLabel}</summary>
+            <div className="field">
+              <label className="field-label" htmlFor="station">Current station (nearest NOAA prediction points)</label>
+              <select id="station" value={stationChoice ?? (station ? stationKey(station) : NO_STATION)}
                 onChange={e => { setStationChoice(e.target.value); resetPicks() }}>
                 {stationOptions.map(s => <option key={stationKey(s)} value={stationKey(s)}>{s.name}{s.bin != null ? ` (bin ${s.bin})` : ''} — {s.d.toFixed(1)} km</option>)}
                 <option value={NO_STATION}>Estimate from tide times only</option>
               </select>
-            </label>
-          </div>
-          {drawing && (
-            <div id="drawBar" className="on">
-              <button type="button" onClick={() => setDrawPoints(points => points.slice(0, -1))} disabled={!drawPoints.length}>↶ Undo point</button>
-              <button type="button" onClick={finishDrawing} disabled={drawPoints.length < 2}>✓ Finish route</button>
-              <button type="button" onClick={() => setDrawing(false)}>✕ Cancel</button>
             </div>
-          )}
-          <div className="hint">
-            Out leg heads <b>{toward ? 'toward' : 'away from'}</b> {inlet.name} → ride the <b>{toward ? 'ebb' : 'flood'}</b> out
-            and the <b>{toward ? 'flood' : 'ebb'}</b> back. Route lines are approximate; draw your own for an exact path.
-          </div>
+          </details>
           {status}
 
           <h2>Best windows</h2>
-          <Windows windows={windows} selected={selected} day={day} approx={approx}
+          <Windows windows={windows} selected={selected} day={day} duration={duration} approx={approx}
             onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
           <h2>Conditions at a time</h2>
           <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
             approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
           <Chart day={day} nextDay={nextDay} route={route} events={events} tides={tides} approx={approx}
-            window={trip} minutes={minutes} />
-          <div className="legend">
-            <span><i style={{ background: 'var(--tide)' }} />Tide height</span>
-            <span><i style={{ background: 'var(--cur)' }} />Current (above line = flood, below = ebb)</span>
-            <span><i style={{ background: 'rgba(34,197,94,.5)' }} />Selected window</span>
-            <span><i style={{ background: '#06101a' }} />Night</span>
-          </div>
-          <div className="legend" style={{ marginTop: 10 }}>
-            <span><i style={{ background: 'var(--out)' }} />Out leg</span>
-            <span><i style={{ background: 'var(--back)' }} />Return leg (dashed)</span>
-          </div>
+            window={trip} minutes={minutes} max={maxMinutes} now={openedAt} onMinutes={setManualMinutes} />
+          <ul className="legend" aria-label="Chart legend">
+            <li><i style={{ background: 'var(--tide)' }} />Tide height</li>
+            <li><i style={{ background: 'var(--cur)' }} />Current (above line = flood, below = ebb)</li>
+            <li><i style={{ background: 'rgba(34,197,94,.5)' }} />Selected window</li>
+            <li><i style={{ background: '#06101a', outline: '1px solid var(--line)' }} />Night</li>
+            <li><i style={{ background: 'var(--out)' }} />Out leg</li>
+            <li><i className="dashed" />Return leg (dashed)</li>
+          </ul>
 
           <MapSettings hasKey={Boolean(arcgisKey)} onChange={() => setArcgisKey(resolveArcgisKey())} />
 
-          <div className="safety">
-            How it works: ebb current flows toward the inlet (out to sea), flood flows away from it. Each window is centered on the
-            slack where the current flips, so you ride the tail of one current out and the start of the next one back, while
-            currents are at their weakest.<br /><br />
-            These are astronomical predictions. Wind, rain runoff and storm surge shift them. Stay out of the St. Augustine and
-            Matanzas inlet throats themselves, where the current runs hardest. Check the marine forecast, wear a PFD, and tell
-            someone your float plan.
-          </div>
+          <aside className="safety" aria-label="Safety notes">
+            <h2>Before you go</h2>
+            <p>
+              Ebb current flows toward the inlet (out to sea); flood flows away from it. Each window is centered on the slack
+              where the current flips, so you ride the tail of one current out and the start of the next one back, while
+              currents are at their weakest.
+            </p>
+            <p>
+              These are astronomical predictions. Wind, rain runoff and storm surge shift them. Stay out of the St. Augustine
+              and Matanzas inlet throats, where the current runs hardest. <b>Check the marine forecast, wear a PFD, and tell
+              someone your float plan.</b>
+            </p>
+          </aside>
         </section>
       </div>
     </>

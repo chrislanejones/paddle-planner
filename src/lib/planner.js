@@ -34,10 +34,18 @@ export const fmtTime = time => new Date(time).toLocaleTimeString('en-US', {
 export const fmtDay = time => new Date(time).toLocaleDateString('en-US', {
   timeZone: TZ, weekday: 'long', month: 'short', day: 'numeric',
 })
+// Clock time without the zone suffix: the page already says "all times Eastern".
+export const fmtClock = time => new Date(time).toLocaleTimeString('en-US', {
+  timeZone: TZ, hour: 'numeric', minute: '2-digit',
+})
 export function fmtTripTime(time, day) {
-  if (fmtDay(time) === fmtDay(day)) return fmtTime(time)
-  return new Date(time).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' }) + ' · ' + fmtTime(time)
+  if (fmtDay(time) === fmtDay(day)) return fmtClock(time)
+  return new Date(time).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' }) + ' · ' + fmtClock(time)
 }
+export const fmtDayChip = time => ({
+  weekday: new Date(time).toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' }),
+  date: new Date(time).toLocaleDateString('en-US', { timeZone: TZ, month: 'short', day: 'numeric' }),
+})
 
 export function sunTimes(day, lat, lng) {
   const date = new Date(wallTime(new Date(day)))

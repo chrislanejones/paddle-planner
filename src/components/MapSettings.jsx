@@ -31,7 +31,7 @@ export default function MapSettings({ hasKey, onChange }) {
         <button type="button" onClick={save}>Save</button>
         <button type="button" onClick={clear}>Clear</button>
       </div>
-      <div role="status">{message || (hasKey ? 'ArcGIS basemaps on. Use the layers button on the map to switch.' : 'Using OpenStreetMap.')}</div>
+      <div role="status" className="hint">{message || (hasKey ? 'ArcGIS basemaps on. Use the layers button on the map to switch.' : 'Using OpenStreetMap.')}</div>
     </details>
   )
 }
