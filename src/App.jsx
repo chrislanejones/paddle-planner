@@ -5,11 +5,13 @@ import Readout from './components/Readout.jsx'
 import Windows from './components/Windows.jsx'
 import ChipGroup from './components/ChipGroup.jsx'
 import MapSettings from './components/MapSettings.jsx'
+import ThemeToggle from './components/ThemeToggle.jsx'
+import { ArrowCounterClockwise, Check, CheckCircle, Info, Warning, WarningOctagon, Waves, X } from './components/icons.js'
 import { loadCurrentStations } from './lib/api.js'
 import { PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
 import {
-  computeWindows, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, valueAt,
+  computeWindows, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
 } from './lib/planner.js'
 import { useForecast, useWind } from './hooks/useForecast.js'
 
@@ -66,6 +68,7 @@ export default function App() {
 
   const day = days[dayIdx]
   const nextDay = days[dayIdx + 1]
+  const sun = useMemo(() => sunTimes(day, mid.lat, mid.lng), [day, mid])
   const windows = useMemo(() => (forecast.data
     ? computeWindows({ events, wind: wind.data, route, day, nextDay, duration })
     : []), [forecast.data, events, wind.data, route, day, nextDay, duration])
@@ -111,25 +114,28 @@ export default function App() {
     resetPicks()
   }
 
+  // Status uses an icon plus a tinted field (never a colored side stripe), so state never relies on color alone.
   let status
   if (drawing) {
-    status = <div className="status info" role="status">Tap the map: first tap = launch spot, last tap = turnaround spot.</div>
+    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Tap the map: first tap = launch spot, last tap = turnaround spot.</p></div>
   } else if (forecast.status === 'loading') {
-    status = <div className="status info" role="status">Loading NOAA predictions…</div>
+    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Loading NOAA predictions…</p></div>
   } else if (forecast.status === 'error') {
     status = (
       <div className="status error" role="alert">
-        <span>NOAA error: {forecast.error}</span>
-        <button type="button" onClick={() => setRevision(r => r + 1)}>Retry</button>
+        <WarningOctagon size={20} aria-hidden="true" />
+        <p>Could not load NOAA predictions. {forecast.error}</p>
+        <button type="button" onClick={() => setRevision(r => r + 1)}><ArrowCounterClockwise size={16} aria-hidden="true" />Retry</button>
       </div>
     )
   } else {
     const warnings = forecast.data.warnings
     status = warnings.length
-      ? <div className="status warn" role="status">{warnings.map(w => <p key={w}>{w}</p>)}</div>
+      ? <div className="status warn" role="status"><Warning size={20} aria-hidden="true" /><div>{warnings.map(w => <p key={w}>{w}</p>)}</div></div>
       : (
         <div className="status ok" role="status">
-          {station ? `Currents: ${station.name} (${station.d.toFixed(1)} km away) · ` : ''}Tides: {tideStation.name}
+          <CheckCircle size={20} aria-hidden="true" />
+          <p>{station ? `Currents: ${station.name} (${station.d.toFixed(1)} km away) · ` : ''}Tides: {tideStation.name}</p>
         </div>
       )
   }
@@ -139,8 +145,14 @@ export default function App() {
   return (
     <>
       <header className="app-header">
-        <h1><span aria-hidden="true">🛶</span> Paddle Tide &amp; Current Planner</h1>
-        <p>St. Augustine · NOAA predictions · all times Eastern</p>
+        <div className="brand">
+          <Waves size={28} aria-hidden="true" />
+          <div>
+            <h1>Paddle Tide &amp; Current Planner</h1>
+            <p>St. Augustine · NOAA predictions · all times Eastern</p>
+          </div>
+        </div>
+        <ThemeToggle />
       </header>
       <div className="wrap">
         <MapView route={route} window={trip} drawing={drawing} drawPoints={drawPoints}
@@ -159,14 +171,14 @@ export default function App() {
             <label className="field-label" htmlFor="route">Route</label>
             <select id="route" value={drawing ? DRAW_ROUTE : routeId} onChange={e => chooseRoute(e.target.value)}>
               {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              <option value={DRAW_ROUTE}>✏️ Draw my own route…</option>
+              <option value={DRAW_ROUTE}>Draw my own route…</option>
             </select>
           </div>
           {drawing && (
             <div className="draw-bar">
-              <button type="button" onClick={() => setDrawPoints(points => points.slice(0, -1))} disabled={!drawPoints.length}>↶ Undo point</button>
-              <button type="button" className="primary" onClick={finishDrawing} disabled={drawPoints.length < 2}>✓ Finish route</button>
-              <button type="button" onClick={() => setDrawing(false)}>✕ Cancel</button>
+              <button type="button" onClick={() => setDrawPoints(points => points.slice(0, -1))} disabled={!drawPoints.length}><ArrowCounterClockwise size={18} aria-hidden="true" />Undo point</button>
+              <button type="button" className="primary" onClick={finishDrawing} disabled={drawPoints.length < 2}><Check size={18} aria-hidden="true" />Finish route</button>
+              <button type="button" onClick={() => setDrawing(false)}><X size={18} aria-hidden="true" />Cancel</button>
             </div>
           )}
           <p className="hint">
@@ -187,21 +199,22 @@ export default function App() {
           {status}
 
           <h2>Best windows</h2>
-          <Windows windows={windows} selected={selected} day={day} duration={duration} approx={approx}
+          <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
+            loading={forecast.status === 'loading' && !drawing}
             onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
           <h2>Conditions at a time</h2>
           <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
             approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
-          <Chart day={day} nextDay={nextDay} route={route} events={events} tides={tides} approx={approx}
+          <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}
             window={trip} minutes={minutes} max={maxMinutes} now={openedAt} onMinutes={setManualMinutes} />
           <ul className="legend" aria-label="Chart legend">
-            <li><i style={{ background: 'var(--tide)' }} />Tide height</li>
-            <li><i style={{ background: 'var(--cur)' }} />Current (above line = flood, below = ebb)</li>
-            <li><i style={{ background: 'rgba(34,197,94,.5)' }} />Selected window</li>
-            <li><i style={{ background: '#06101a', outline: '1px solid var(--line)' }} />Night</li>
-            <li><i style={{ background: 'var(--out)' }} />Out leg</li>
-            <li><i className="dashed" />Return leg (dashed)</li>
+            <li><i className="sw sw-tide" />Tide height</li>
+            <li><i className="sw sw-current" />Current (above line = flood, below = ebb)</li>
+            <li><i className="sw sw-out" />Out leg</li>
+            <li><i className="sw sw-back" />Return leg</li>
+            <li><i className="sw sw-slack" />Turn at slack water</li>
+            <li><i className="sw sw-night" />Night</li>
           </ul>
 
           <MapSettings hasKey={Boolean(arcgisKey)} onChange={() => setArcgisKey(resolveArcgisKey())} />

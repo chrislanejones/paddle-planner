@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Paddle Tide &amp; Current Planner</title>
+  <rect width="64" height="64" rx="14" fill="#0a2a43"/>
+  <path d="M8 36Q14 27 20 36Q26 45 32 36Q38 27 44 36Q50 45 56 36" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8 48Q14 39 20 48Q26 57 32 48Q38 39 44 48Q50 57 56 48" fill="none" stroke="#8fd0ff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M47 8L56 17L47 26L38 17Z" fill="#f0b04a" stroke="#0a2a43" stroke-width="2" stroke-linejoin="round"/>
+</svg>

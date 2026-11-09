@@ -1,4 +1,5 @@
 import { fmtDay, fmtTime, outTowardInlet, valueAt, windAt } from '../lib/planner.js'
+import { ArrowDownLeft, ArrowUpRight, Equals } from './icons.js'
 
 const TEN_MINUTES = 600_000
 
@@ -29,10 +30,10 @@ export default function Readout({ time, route, events, tides, wind, windStatus, 
   if (v != null && !slack) {
     const helpsOut = toward ? v < 0 : v > 0
     leg = helpsOut
-      ? { kind: 'out', text: <>Current is pushing you along the <b>out</b> leg</> }
-      : { kind: 'back', text: <>Current is pushing you along the <b>return</b> leg</> }
+      ? { kind: 'out', Icon: ArrowUpRight, text: <>Current is pushing you along the <b>out</b> leg</> }
+      : { kind: 'back', Icon: ArrowDownLeft, text: <>Current is pushing you along the <b>return</b> leg</> }
   } else if (v != null) {
-    leg = { kind: 'slack', text: 'Slack water: easy both ways' }
+    leg = { kind: 'slack', Icon: Equals, text: 'Slack water: easy both ways' }
   }
 
   return (
@@ -43,9 +44,9 @@ export default function Readout({ time, route, events, tides, wind, windStatus, 
         <dt>Tide</dt><dd>{tide}</dd>
         <dt>Wind</dt><dd>{windText}</dd>
       </dl>
-      {leg && <div className={`ro-leg ro-${leg.kind}`}>{leg.text}</div>}
+      {leg && <div className={`ro-leg ro-${leg.kind}`}><leg.Icon size={18} aria-hidden="true" />{leg.text}</div>}
       <input type="range" min="0" max={max} step="10" value={minutes} aria-label="Time of day"
-        aria-valuetext={`${fmtTime(time)}`} onChange={e => onMinutes(+e.target.value)} />
+        aria-valuetext={fmtTime(time)} onChange={e => onMinutes(+e.target.value)} />
     </div>
   )
 }

@@ -1,0 +1,110 @@
+/* Chart Room design tokens.
+   Light is the designed-first theme (paddlers read this outdoors in glare).
+   Dark follows the system preference or the header toggle.
+   The two dark blocks must stay identical: src/lib/tokens.test.js enforces
+   that, plus WCAG contrast for every text/surface and control/surface pair. */
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --ground: #f4f8fa;       /* page behind the map */
+  --panel: #e6eff5;        /* second neutral: shallow-water tint */
+  --card: #ffffff;
+  --header: #0a2a43;       /* deep-water navy shell */
+  --on-header: #f2f8fb;
+
+  /* text */
+  --ink: #0b2233;
+  --mute: #41596a;
+
+  /* lines: --line is decorative only, --control meets 3:1 for interactive edges */
+  --line: #c3d3dd;
+  --control: #5b7a8c;
+
+  /* selection and focus */
+  --select: #0a3a5c;
+  --on-select: #ffffff;
+  --focus: #0a4fb4;
+  --focus-on-dark: #8fd0ff;
+
+  /* trip semantics (also drawn on the chart and the map) */
+  --out: #0b6b3a;          /* outbound leg, current helping you out */
+  --back: #0a5f95;         /* return leg */
+  --slack: #964f00;        /* turnaround at slack water */
+  --hazard: #a8195a;       /* chart magenta: inlets, errors */
+  --tide: #2b5fa8;
+  --current: #b45309;
+  --night: #cfdbe4;
+
+  /* status tints (ink text sits on these) */
+  --tint-info: #dbeaf5;
+  --tint-ok: #dcf1e4;
+  --tint-warn: #fbe8c9;
+  --tint-error: #f8dce7;
+
+  --map-filter: none;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --tap: 2.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --ground: #06141d;
+    --panel: #0c2130;
+    --card: #11303f;
+    --header: #040f17;
+    --on-header: #e7f1f6;
+    --ink: #e7f1f6;
+    --mute: #a2bfcd;
+    --line: #234656;
+    --control: #6b93a7;
+    --select: #cfe8f5;
+    --on-select: #06222f;
+    --focus: #7cc4ff;
+    --focus-on-dark: #7cc4ff;
+    --out: #5fd68f;
+    --back: #6bc3f5;
+    --slack: #f0b04a;
+    --hazard: #f58bb8;
+    --tide: #7fb0ee;
+    --current: #fdba74;
+    --night: #06141d;
+    --tint-info: #123349;
+    --tint-ok: #123a2a;
+    --tint-warn: #3d2f12;
+    --tint-error: #3f1a2b;
+    --map-filter: invert(.92) hue-rotate(180deg) saturate(.75) brightness(.95);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ground: #06141d;
+  --panel: #0c2130;
+  --card: #11303f;
+  --header: #040f17;
+  --on-header: #e7f1f6;
+  --ink: #e7f1f6;
+  --mute: #a2bfcd;
+  --line: #234656;
+  --control: #6b93a7;
+  --select: #cfe8f5;
+  --on-select: #06222f;
+  --focus: #7cc4ff;
+  --focus-on-dark: #7cc4ff;
+  --out: #5fd68f;
+  --back: #6bc3f5;
+  --slack: #f0b04a;
+  --hazard: #f58bb8;
+  --tide: #7fb0ee;
+  --current: #fdba74;
+  --night: #06141d;
+  --tint-info: #123349;
+  --tint-ok: #123a2a;
+  --tint-warn: #3d2f12;
+  --tint-error: #3f1a2b;
+  --map-filter: invert(.92) hue-rotate(180deg) saturate(.75) brightness(.95);
+}
