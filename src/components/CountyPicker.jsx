@@ -161,7 +161,7 @@ export default function CountyPicker({ scope, countyCount, sectionCount, bestCou
           <ul>
             <li>
               <button type="button" className="geo-link" aria-pressed={scope.kind === 'best'} onClick={onBest}>
-                <span>First Coast best</span><span className="geo-count">{bestCount}</span>
+                <span>Top Rated Areas</span><span className="geo-count">{bestCount}</span>
               </button>
             </li>
             {COUNTIES.map(c => {

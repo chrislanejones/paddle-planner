@@ -119,7 +119,7 @@ export default function App() {
   }, [scope, customRoute])
   const scopeLabel = scope.kind === 'county' ? `${scope.county} County`
     : scope.kind === 'section' ? `${scope.county} · ${scope.section}`
-      : scope.kind === 'yours' ? 'Your route' : 'Best of the First Coast'
+      : scope.kind === 'yours' ? 'Your route' : 'Top Rated Areas'
 
   const resetPicks = () => { setPickedWindow(null); setManualMinutes(null) }
   const chooseRoute = value => {
