@@ -218,7 +218,7 @@ export default function App() {
           )}
           {!drawing && (
             <div className="draw-bar">
-              <button type="button" onClick={startDrawing}><PencilSimple size={18} aria-hidden="true" />Draw my own route</button>
+              <button type="button" onClick={startDrawing}><PencilSimple size={18} aria-hidden="true" />Draw route</button>
               <button type="button" onClick={clearRoute} disabled={cleared}><TrashSimple size={18} aria-hidden="true" />Clear route</button>
             </div>
           )}

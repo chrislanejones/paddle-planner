@@ -72,8 +72,9 @@ button.primary:disabled { background: var(--card); color: var(--mute); border-co
 button:hover:not(:disabled), select:hover { border-color: var(--ink); }
 
 /* Segmented control: one frame, shared dividers. Tide-table column heads, not a row of pills. */
-.segments { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1.5px solid var(--control); border-radius: var(--r-sm); overflow: hidden; background: var(--card); }
-.segments.days { grid-auto-columns: minmax(3.1rem, 1fr); overflow-x: auto; scroll-snap-type: x proximity; }
+.segments { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; min-height: 3.1rem; border: 1.5px solid var(--control); border-radius: var(--r-sm); overflow: hidden; background: var(--card); }
+.segments.days { grid-auto-columns: minmax(3.1rem, 1fr); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; } /* no scrollbar, so Day and Round trip stay the same height */
+.segments.days::-webkit-scrollbar { display: none; }
 .seg {
   flex-direction: column; gap: 0; min-width: 0; padding: var(--s-1) var(--s-1); line-height: 1.15;
   border: 0; border-radius: 0; background: transparent; scroll-snap-align: start;
@@ -95,7 +96,7 @@ button:hover:not(:disabled), select:hover { border-color: var(--ink); }
 }
 /* Two equal columns: Draw / Clear sit at 50% each and never move, and the drawing controls wrap as 2 x 2. */
 .draw-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: 0 0 var(--s-3); }
-.draw-bar button { width: 100%; min-width: 0; }
+.draw-bar button { width: 100%; min-width: 0; white-space: nowrap; }
 
 /* ---------- status ---------- */
 .status {
