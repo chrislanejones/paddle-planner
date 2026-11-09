@@ -1,6 +1,5 @@
 # Parking lot
 
-- README for the repo (route it through the `chris-voice` skill).
 - `.env.example` is not committed: it matches the `.env*` read-deny rule, so it was not checked for
   placeholders. The app reads `VITE_ARCGIS_API_KEY`; confirm that name matches the file, then add it.
 - Current-station list shows several bins per NOAA station; consider collapsing to the best bin.
