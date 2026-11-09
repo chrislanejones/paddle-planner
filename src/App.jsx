@@ -37,6 +37,7 @@ export default function App() {
   const [stationChoice, setStationChoice] = useState(null) // null = nearest within 15 km
   const [drawing, setDrawing] = useState(false)
   const [cleared, setCleared] = useState(false) // true = no route on the map
+  const [regionFocus, setRegionFocus] = useState({ key: 0, pts: [] }) // choosing a region moves the map to it
   const [drawPoints, setDrawPoints] = useState([])
   const [pickedWindow, setPickedWindow] = useState(null) // null = first daylight window
   const [manualMinutes, setManualMinutes] = useState(null) // null = follow the selected window
@@ -111,7 +112,10 @@ export default function App() {
     setStationChoice(null)
     resetPicks()
   }
-  const chooseRegion = name => chooseRoute(routesIn(name)[0].id)
+  const chooseRegion = name => {
+    chooseRoute(routesIn(name)[0].id)
+    setRegionFocus(f => ({ key: f.key + 1, pts: routesIn(name).flatMap(r => r.pts) }))
+  }
   const startDrawing = () => { setDrawPoints([]); setDrawing(true) }
   const finishDrawing = () => {
     if (drawPoints.length < 2) return
@@ -179,7 +183,7 @@ export default function App() {
         <ThemeToggle />
       </header>
       <div className="wrap">
-        <MapView route={route} visible={!cleared} window={trip} drawing={drawing} drawPoints={drawPoints}
+        <MapView route={route} visible={!cleared} focus={regionFocus} window={trip} drawing={drawing} drawPoints={drawPoints}
           onDrawPoint={p => setDrawPoints(points => [...points, p])} stationMarker={stationMarker} arcgisKey={arcgisKey} />
         <section id="panel" aria-label="Trip planner">
           <ChipGroup label="Day" note={monthNote} value={dayIdx} className="days"
@@ -215,7 +219,7 @@ export default function App() {
           {!drawing && (
             <div className="draw-bar">
               <button type="button" onClick={startDrawing}><PencilSimple size={18} aria-hidden="true" />Draw my own route</button>
-              {!cleared && <button type="button" onClick={clearRoute}><TrashSimple size={18} aria-hidden="true" />Clear route</button>}
+              <button type="button" onClick={clearRoute} disabled={cleared}><TrashSimple size={18} aria-hidden="true" />Clear route</button>
             </div>
           )}
           {cleared ? (

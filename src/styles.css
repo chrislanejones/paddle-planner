@@ -93,7 +93,9 @@ button:hover:not(:disabled), select:hover { border-color: var(--ink); }
   cursor: pointer; color: var(--mute); font-size: var(--t-sm); font-weight: 700;
   min-height: var(--tap); display: flex; align-items: center;
 }
-.draw-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0 0 var(--s-3); }
+/* Two equal columns: Draw / Clear sit at 50% each and never move, and the drawing controls wrap as 2 x 2. */
+.draw-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: 0 0 var(--s-3); }
+.draw-bar button { width: 100%; min-width: 0; }
 
 /* ---------- status ---------- */
 .status {

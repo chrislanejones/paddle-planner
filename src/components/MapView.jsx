@@ -59,10 +59,11 @@ function buildBasemaps(key) {
 
 // Imperative Leaflet wrapped in effects. Each effect owns one layer group so
 // a change in one prop never rebuilds the rest of the map.
-export default function MapView({ route, visible = true, window: trip, drawing, drawPoints, onDrawPoint, stationMarker, arcgisKey }) {
+export default function MapView({ route, visible = true, focus, window: trip, drawing, drawPoints, onDrawPoint, stationMarker, arcgisKey }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const layersRef = useRef({})
+  const handledFocusRef = useRef(0)
   const onDrawPointRef = useRef(onDrawPoint)
   const drawingRef = useRef(drawing)
   useEffect(() => { onDrawPointRef.current = onDrawPoint; drawingRef.current = drawing })
@@ -111,11 +112,20 @@ export default function MapView({ route, visible = true, window: trip, drawing, 
   useEffect(() => {
     const map = mapRef.current
     if (!visible || route.pts.length < 2) return
+    if (focus && focus.key !== handledFocusRef.current) return // a region pick is moving the map instead
     const bounds = L.polyline(route.pts).getBounds()
     // A route the visitor just drew is already on screen: leave their zoom and position alone.
     if (route.id === 'custom' && map.getBounds().contains(bounds)) return
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus is read only when the route changes
   }, [route, visible])
+
+  // Picking a region frames every route in it, so the map moves to where the routes are.
+  useEffect(() => {
+    if (!focus?.key || focus.key === handledFocusRef.current) return
+    handledFocusRef.current = focus.key
+    if (focus.pts.length > 1) mapRef.current.fitBounds(L.polyline(focus.pts).getBounds(), { padding: [30, 30], maxZoom: 12 })
+  }, [focus])
 
   useEffect(() => {
     const layer = layersRef.current.route
