@@ -9,11 +9,11 @@ test('preset route ids are unique and every route has a name', () => {
   PRESETS.forEach(r => assert.ok(r.name.length > 10, `${r.id} needs a descriptive name`))
 })
 
-test('preset routes are well-formed and sit in the St. Augustine and Matanzas area', () => {
+test('preset routes are well-formed and sit between Palm Coast and Guana', () => {
   PRESETS.forEach(r => {
     assert.ok(r.pts.length >= 2, `${r.id} needs at least two points`)
     r.pts.forEach(([lat, lng]) => {
-      assert.ok(lat > 29.6 && lat < 30.05 && lng > -81.4 && lng < -81.15, `${r.id} has a point outside the area: ${lat},${lng}`)
+      assert.ok(lat > 29.5 && lat < 30.1 && lng > -81.4 && lng < -81.15, `${r.id} has a point outside the area: ${lat},${lng}`)
     })
     r.pts.slice(1).forEach((p, i) => {
       const gap = km(point(r.pts[i]), point(p))
