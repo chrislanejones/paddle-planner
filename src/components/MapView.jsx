@@ -128,10 +128,10 @@ export default function MapView({ route, window: trip, drawing, drawPoints, onDr
     })
     arrows(pts, ROUTE.out)
     arrows(back, ROUTE.back)
-    const startLabel = trip ? `Launch ${fmtClock(trip.launch)}<br>Back by ${fmtClock(trip.back)}` : 'Start'
+    const startLabel = trip ? `Launch ${fmtClock(trip.launch)}<br>Return ${fmtClock(trip.back)}` : 'Start'
     // Put the turnaround label on the side away from the route so it never covers the line or the current badge.
     const endBelow = pts.at(-1)[0] <= pts.at(-2)[0]
-    const endLabel = trip ? `Turn around ${fmtClock(trip.turn)}<br><small>slack water, current flips</small>` : 'Turnaround'
+    const endLabel = trip ? `Turn ${fmtClock(trip.turn)}<br><small>slack, current flips</small>` : 'Turnaround'
     L.circleMarker(pts[0], { radius: 8, color: ROUTE.out, fillColor: '#ffffff', fillOpacity: 1, weight: 4 })
       .bindTooltip(startLabel, { permanent: true, direction: 'left', className: 'lbl out', offset: [-10, 0] }).addTo(layer)
     L.marker(pts.at(-1), { icon: L.divIcon({ className: 'turn-mark', html: '<span class="turn-diamond"></span>', iconSize: [18, 18], iconAnchor: [9, 9] }) })

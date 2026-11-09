@@ -41,8 +41,8 @@ typography:
     fontSize: "0.875rem"
     fontWeight: 700
 rounded:
-  sm: "8px"
-  md: "12px"
+  sm: "4px"
+  md: "6px"
 spacing:
   s1: "0.25rem"
   s2: "0.5rem"
@@ -98,7 +98,7 @@ Dark theme values live beside the light ones in `src/tokens.css`; the two dark b
 
 ## Typography
 
-One family: Atkinson Hyperlegible Next (variable), self-hosted. It was designed for legibility, which is the point for glare and small phone screens. Numbers use tabular figures so times line up. Fixed rem scale, ratio about 1.125: 12, 14, 16, 18, 22 px. No fluid type. Body measure is capped at 70ch.
+One family: Atkinson Hyperlegible Next (variable), self-hosted. Three roles carry the hierarchy: **data** (large bold tabular digits with a small tracked unit, used for every time), **label** (12px bold caps, tracked .08em, muted), and **body** (16px/14px regular). Section headings are labels followed by a hairline rule, like a chart legend. Headings use `text-wrap: balance`, prose `pretty`. It was designed for legibility, which is the point for glare and small phone screens. Numbers use tabular figures so times line up. Fixed rem scale, ratio about 1.125: 12, 14, 16, 18, 22 px. No fluid type. Body measure is capped at 70ch.
 
 ## Layout
 
@@ -110,12 +110,12 @@ Flat. Edges are 1px borders, never stacked shadows. Interactive edges use `contr
 
 ## Shapes
 
-Controls 8px radius, cards 12px, small pills for chips only. Icons are Phosphor, regular weight, imported per icon from `src/components/icons.js`.
+Controls and chips 4px radius, cards 6px. Squarer than a default UI kit on purpose: it reads as a chart label plate, not a pill. Control borders are 1.5px. Icons are Phosphor, regular weight, imported per icon from `src/components/icons.js`.
 
 ## Components
 
-- **Chip group** (day, trip length): equal-width single-choice buttons, 44px minimum height. Selected = `select` fill with `on-select` text.
-- **Window card**: a button. Time range, slack band strip, turn time, then chips (daylight, peak current, wind). Selected state is the inset ring.
+- **Segmented control** (day, round trip): one frame with shared 1px dividers, like the column heads of a tide table. Day segments set a small tracked weekday over a large date numeral; trip length sets the number over a small `HR` unit. Selected = `select` fill with `on-select` text. 44px minimum height.
+- **Window card**: a button. Launch and return times in large tabular digits with a small AM/PM unit (`Clock`), the slack band with a 12a/6a/12p/6p hour scale, the turn time, then chips: daylight (or which end is dark), peak current, wind. Selected state is the inset ring.
 - **Status banner**: icon plus tinted field in four variants (info, ok, warn, error). Never a colored side stripe.
 - **Readout**: label/value grid for current, tide, wind, plus a one-line out/return/slack callout with an icon.
 - **Chart**: drawn in real pixels so labels stay readable; drag to scrub the time; "now" marker; high and low tide labels.
@@ -129,6 +129,10 @@ Controls 8px radius, cards 12px, small pills for chips only. Icons are Phosphor,
 - Say what failed and what to do next in errors.
 - Add a token and a pair to `tokens.test.js` together.
 - Label estimates as estimates.
+
+### Voice
+
+Mariner's vocabulary, used the same way everywhere: **Launch**, **Turn**, **Return**, **slack**, **flood**, **ebb**. Short imperatives for safety. Say which end is dark. Errors say what failed and what it means. No em dashes, no assistant phrasing ("Current is pushing you along...", "Before you go").
 
 ### Don't:
 - Use emoji or glyphs as icons, or mix icon families.

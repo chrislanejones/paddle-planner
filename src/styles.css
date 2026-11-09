@@ -56,28 +56,35 @@ a { text-underline-offset: .2em; }
 
 /* ---------- controls ---------- */
 .field { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
-.field-label { font-size: var(--t-sm); font-weight: 700; color: var(--mute); }
+.field-label { display: flex; justify-content: space-between; gap: var(--s-2); font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.field-note { font-weight: 400; letter-spacing: .04em; }
 select, button, input[type=password] {
   font: inherit; color: var(--ink); background: var(--card);
-  border: 1px solid var(--control); border-radius: var(--r-sm);
+  border: 1.5px solid var(--control); border-radius: var(--r-sm);
   min-height: var(--tap); padding: var(--s-2) var(--s-3);
+  font-weight: 700;
 }
-select { width: 100%; }
+select { width: 100%; font-weight: 400; }
 button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
 button:disabled { opacity: .55; cursor: not-allowed; }
 button.primary { background: var(--select); color: var(--on-select); border-color: var(--select); font-weight: 700; }
 button.primary:disabled { background: var(--card); color: var(--mute); border-color: var(--control); }
 button:hover:not(:disabled), select:hover { border-color: var(--ink); }
 
-.chip-group { display: grid; grid-auto-flow: column; gap: var(--s-2); }
-.chip-group.days { gap: var(--s-1); grid-auto-columns: minmax(3.1rem, 1fr); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: var(--s-1); }
-.chip-group.days .seg { scroll-snap-align: start; }
-.chip-group.lengths { grid-auto-columns: 1fr; }
-.seg { flex-direction: column; gap: 0; padding: var(--s-2) var(--s-1); line-height: 1.2; }
-.seg-main { font-weight: 700; }
-.seg-sub { font-size: var(--t-xs); color: var(--mute); }
-.seg[aria-pressed='true'] { background: var(--select); border-color: var(--select); color: var(--on-select); }
-.seg[aria-pressed='true'] .seg-sub { color: inherit; }
+/* Segmented control: one frame, shared dividers. Tide-table column heads, not a row of pills. */
+.segments { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1.5px solid var(--control); border-radius: var(--r-sm); overflow: hidden; background: var(--card); }
+.segments.days { grid-auto-columns: minmax(3.1rem, 1fr); overflow-x: auto; scroll-snap-type: x proximity; }
+.seg {
+  flex-direction: column; gap: 0; min-width: 0; padding: var(--s-1) var(--s-1); line-height: 1.15;
+  border: 0; border-radius: 0; background: transparent; scroll-snap-align: start;
+}
+.seg + .seg { border-left: 1px solid var(--line); }
+.seg-top { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.seg-main { font-size: var(--t-lg); font-weight: 700; letter-spacing: -.01em; }
+.seg-unit { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.seg:hover:not([aria-pressed='true']) { background: var(--panel); }
+.seg[aria-pressed='true'] { background: var(--select); color: var(--on-select); }
+.seg[aria-pressed='true'] .seg-top, .seg[aria-pressed='true'] .seg-unit { color: inherit; }
 
 .hint { font-size: var(--t-sm); color: var(--mute); margin: 0 0 var(--s-3); max-width: 70ch; }
 .hint b { color: var(--ink); }
@@ -105,33 +112,43 @@ button:hover:not(:disabled), select:hover { border-color: var(--ink); }
 .status.warn { background: var(--tint-warn); } .status.warn > svg { color: var(--slack); }
 .status.error { background: var(--tint-error); } .status.error > svg { color: var(--hazard); }
 
-h2 { margin: var(--s-5) 0 var(--s-2); font-size: var(--t-sm); font-weight: 700; color: var(--mute); letter-spacing: .06em; text-transform: uppercase; }
+h2 { display: flex; align-items: center; gap: var(--s-3); margin: var(--s-5) 0 var(--s-3); font-size: var(--t-xs); font-weight: 700; color: var(--ink); letter-spacing: .1em; text-transform: uppercase; }
+h2::after { content: ''; flex: 1; height: 1px; background: var(--control); }
 
 /* ---------- best windows (the slack band lives here, on the chart, and on the map) ---------- */
 .win-list { display: grid; gap: var(--s-2); }
 .win {
-  display: grid; gap: var(--s-2); width: 100%; padding: var(--s-3); text-align: left;
+  display: grid; justify-content: stretch; justify-items: stretch; gap: var(--s-2); width: 100%; padding: var(--s-3); text-align: left;
   background: var(--card); border: 1px solid var(--control); border-radius: var(--r-md);
 }
 .win.sel { border-color: var(--select); box-shadow: inset 0 0 0 2px var(--select); }
 .win-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); }
-.win-range { font-size: var(--t-md); font-weight: 700; }
-.win-len { font-size: var(--t-sm); color: var(--mute); white-space: nowrap; }
+.win-range { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--s-2); }
+.win-dash { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.win-len { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); white-space: nowrap; }
 .win-turn { font-size: var(--t-sm); color: var(--mute); }
 .win-turn b { color: var(--ink); }
-.band { display: block; width: 100%; height: .875rem; border: 1px solid var(--control); border-radius: 4px; }
+.win-turn .clock-digits { font-size: inherit; }
+.win-turn .clock-unit { font-size: var(--t-xs); }
+.band-wrap { position: relative; padding-bottom: 1rem; }
+.band { display: block; width: 100%; height: 1.125rem; border: 1px solid var(--control); border-radius: 2px; }
+.band-scale { position: absolute; left: 0; right: 0; bottom: 0; height: .875rem; font-size: .6875rem; font-weight: 700; letter-spacing: .04em; color: var(--mute); }
+.band-scale span { position: absolute; top: 0; transform: translateX(-0%); }
+.band-scale span:first-child { transform: none; }
+.c-tick { fill: var(--control); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .chip {
   display: inline-flex; align-items: center; gap: var(--s-1);
   padding: 2px var(--s-3); font-size: var(--t-xs); font-weight: 700;
-  background: var(--panel); border-radius: 999px;
+  background: var(--panel); border-radius: var(--r-sm);
 }
+.chip-dark { background: var(--tint-warn); }
 .empty { margin: 0; font-size: var(--t-sm); color: var(--mute); max-width: 60ch; }
 .win.skeleton { min-height: 7.25rem; border-color: var(--line); }
 
 /* ---------- readout + chart ---------- */
 .readout { padding: var(--s-3); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); }
-.ro-time { margin-bottom: var(--s-2); font-size: var(--t-md); font-weight: 700; }
+.ro-time { margin-bottom: var(--s-2); }
 .ro-grid { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-1) var(--s-4); margin: 0; }
 .ro-grid dt { color: var(--mute); font-size: var(--t-sm); }
 .ro-grid dd { margin: 0; }
@@ -196,3 +213,16 @@ svg#chart { display: block; max-width: 100%; background: var(--card); border: 1p
 .leaflet-tooltip.lbl.turn { border-color: #b45f06; }
 .cur-badge { padding: 2px 6px; color: #0b2233; background: #fff; border: 2px solid #b45309; border-radius: 6px; font: 700 var(--t-xs)/1.2 var(--font); white-space: nowrap; }
 .leaflet-container { font-family: var(--font); }
+
+
+/* ---------- clock: big tabular digits, small AM/PM unit ---------- */
+.clock { display: inline-flex; align-items: baseline; gap: .2em; white-space: nowrap; }
+.clock-digits { font-size: var(--t-lg); font-weight: 700; letter-spacing: -.01em; }
+.clock-unit { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.ro-time { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.ro-day { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.safety ul { margin: 0 0 var(--s-3); padding-left: 1.1rem; max-width: 70ch; }
+.safety li + li { margin-top: var(--s-1); }
+.safety p { text-wrap: pretty; }
+.hint, .empty, .status p { text-wrap: pretty; }
+h1, h2 { text-wrap: balance; }

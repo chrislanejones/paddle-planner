@@ -16,3 +16,11 @@ test('fmtTripTime adds the date only when the time falls on another day', () => 
 test('fmtDayChip gives a short weekday and date in Eastern time', () => {
   assert.deepEqual(fmtDayChip(day), { weekday: 'Sun', date: 'Nov 8' })
 })
+
+test('darkEnds reports which end of a trip is outside daylight', async () => {
+  const { darkEnds } = await import('./planner.js')
+  const sun = { rise: 100, set: 200 }
+  assert.deepEqual(darkEnds({ launch: 110, back: 190 }, sun), { launch: false, back: false })
+  assert.deepEqual(darkEnds({ launch: 90, back: 150 }, sun), { launch: true, back: false })
+  assert.deepEqual(darkEnds({ launch: 150, back: 210 }, sun), { launch: false, back: true })
+})

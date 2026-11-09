@@ -167,3 +167,9 @@ export function nearbyStations(stations, route) {
   }).slice(0, 6)
 }
 export const stationKey = station => `${station.id}:${station.bin ?? ''}`
+
+// Which end of a trip falls outside daylight, so the card can say "Dark at launch" instead of a vague "partly dark".
+export function darkEnds(trip, sun) {
+  const dark = t => t < sun.rise || t > sun.set
+  return { launch: dark(trip.launch), back: dark(trip.back) }
+}

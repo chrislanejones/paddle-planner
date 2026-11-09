@@ -11,7 +11,7 @@ import { loadCurrentStations } from './lib/api.js'
 import { PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
 import {
-  computeWindows, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
+  computeWindows, fmtDay, fmtDayChip, forecastDays, nearbyStations, nearestBy, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
 } from './lib/planner.js'
 import { useForecast, useWind } from './hooks/useForecast.js'
 
@@ -117,14 +117,14 @@ export default function App() {
   // Status uses an icon plus a tinted field (never a colored side stripe), so state never relies on color alone.
   let status
   if (drawing) {
-    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Tap the map: first tap = launch spot, last tap = turnaround spot.</p></div>
+    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Tap the map to place the launch, then each bend. The last tap is the turn.</p></div>
   } else if (forecast.status === 'loading') {
-    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Loading NOAA predictions…</p></div>
+    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Loading NOAA tide and current predictions…</p></div>
   } else if (forecast.status === 'error') {
     status = (
       <div className="status error" role="alert">
         <WarningOctagon size={20} aria-hidden="true" />
-        <p>Could not load NOAA predictions. {forecast.error}</p>
+        <p><b>Predictions didn't load.</b> {forecast.error}</p>
         <button type="button" onClick={() => setRevision(r => r + 1)}><ArrowCounterClockwise size={16} aria-hidden="true" />Retry</button>
       </div>
     )
@@ -135,12 +135,13 @@ export default function App() {
       : (
         <div className="status ok" role="status">
           <CheckCircle size={20} aria-hidden="true" />
-          <p>{station ? `Currents: ${station.name} (${station.d.toFixed(1)} km away) · ` : ''}Tides: {tideStation.name}</p>
+          <p>{station ? `Current: ${station.name}, ${station.d.toFixed(1)} km away · ` : ''}Tide: {tideStation.name}</p>
         </div>
       )
   }
 
-  const stationLabel = station ? station.name : 'tide-based estimate'
+  const monthNote = [...new Set(days.slice(0, 7).map(d => fmtDayChip(d).date.split(' ')[0]))].join(' / ')
+  const stationLabel = station ? station.name : 'estimated from tides'
 
   return (
     <>
@@ -149,7 +150,7 @@ export default function App() {
           <Waves size={28} aria-hidden="true" />
           <div>
             <h1>Paddle Tide &amp; Current Planner</h1>
-            <p>St. Augustine · NOAA predictions · all times Eastern</p>
+            <p>St. Augustine, FL · NOAA predictions · Eastern time</p>
           </div>
         </div>
         <ThemeToggle />
@@ -158,14 +159,14 @@ export default function App() {
         <MapView route={route} window={trip} drawing={drawing} drawPoints={drawPoints}
           onDrawPoint={p => setDrawPoints(points => [...points, p])} stationMarker={stationMarker} arcgisKey={arcgisKey} />
         <section id="panel" aria-label="Trip planner">
-          <ChipGroup label="Day" value={dayIdx} className="days"
+          <ChipGroup label="Day" note={monthNote} value={dayIdx} className="days"
             options={days.slice(0, 7).map((d, i) => {
               const { weekday, date } = fmtDayChip(d)
-              return { value: i, label: i === 0 ? 'Today' : weekday, sub: date }
+              return { value: i, top: i === 0 ? 'Today' : weekday, main: date.split(' ')[1], name: fmtDay(d) }
             })}
             onChange={i => { setDayIdx(i); resetPicks() }} />
-          <ChipGroup label="Trip length (out and back)" value={duration} className="lengths"
-            options={DURATIONS.map(h => ({ value: h, label: `${h} h` }))}
+          <ChipGroup label="Round trip" value={duration} className="lengths"
+            options={DURATIONS.map(h => ({ value: h, main: String(h), unit: 'hr', name: `${h} hours` }))}
             onChange={h => { setDuration(h); resetPicks() }} />
           <div className="field">
             <label className="field-label" htmlFor="route">Route</label>
@@ -182,28 +183,28 @@ export default function App() {
             </div>
           )}
           <p className="hint">
-            Out leg heads <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: ride the <b>{toward ? 'ebb' : 'flood'}</b> out
-            and the <b>{toward ? 'flood' : 'ebb'}</b> back. Route lines are approximate; draw your own for an exact path.
+            Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
+            return on the <b>{toward ? 'flood' : 'ebb'}</b>. Lines are approximate. Draw your own for an exact path.
           </p>
           <details className="advanced">
-            <summary>Current data: {stationLabel}</summary>
+            <summary>Current source: {stationLabel}</summary>
             <div className="field">
-              <label className="field-label" htmlFor="station">Current station (nearest NOAA prediction points)</label>
+              <label className="field-label" htmlFor="station">Current station</label>
               <select id="station" value={stationChoice ?? (station ? stationKey(station) : NO_STATION)}
                 onChange={e => { setStationChoice(e.target.value); resetPicks() }}>
                 {stationOptions.map(s => <option key={stationKey(s)} value={stationKey(s)}>{s.name}{s.bin != null ? ` (bin ${s.bin})` : ''} — {s.d.toFixed(1)} km</option>)}
-                <option value={NO_STATION}>Estimate from tide times only</option>
+                <option value={NO_STATION}>Estimate from tides only</option>
               </select>
             </div>
           </details>
           {status}
 
-          <h2>Best windows</h2>
+          <h2>Launch windows</h2>
           <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
             loading={forecast.status === 'loading' && !drawing}
             onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
-          <h2>Conditions at a time</h2>
+          <h2>Conditions</h2>
           <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
             approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
           <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}
@@ -220,17 +221,13 @@ export default function App() {
           <MapSettings hasKey={Boolean(arcgisKey)} onChange={() => setArcgisKey(resolveArcgisKey())} />
 
           <aside className="safety" aria-label="Safety notes">
-            <h2>Before you go</h2>
-            <p>
-              Ebb current flows toward the inlet (out to sea); flood flows away from it. Each window is centered on the slack
-              where the current flips, so you ride the tail of one current out and the start of the next one back, while
-              currents are at their weakest.
-            </p>
-            <p>
-              These are astronomical predictions. Wind, rain runoff and storm surge shift them. Stay out of the St. Augustine
-              and Matanzas inlet throats, where the current runs hardest. <b>Check the marine forecast, wear a PFD, and tell
-              someone your float plan.</b>
-            </p>
+            <h2>Safety</h2>
+            <ul>
+              <li><b>Wear a PFD, check the marine forecast, and leave a float plan.</b></li>
+              <li>Stay out of the inlet throats, where current runs hardest. Dashed rings on the map mark them.</li>
+              <li>Predictions are astronomical. Wind, rain runoff and storm surge shift them.</li>
+            </ul>
+            <p>Each window centers on the slack where the current flips: ride the tail of one current out and the start of the next one back.</p>
           </aside>
         </section>
       </div>

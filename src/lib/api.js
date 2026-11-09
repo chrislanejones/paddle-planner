@@ -75,13 +75,15 @@ export async function loadPredictions({ tideStation, station, days, signal, refr
     throw new Error(tideResult.reason?.message || currentResult.reason?.message || 'No predictions were returned for this week.')
   }
   const warnings = []
+  const OFF = 'which can run 30 to 90 minutes off in the rivers.'
   if (approx) {
-    warnings.push(`Current estimated from tide times at ${tideStation.name}. Tide turns are not measured slack water; local current timing and speed may differ.`)
-    if (station) warnings.push('The selected current station is unavailable.')
+    warnings.push(station
+      ? `The current station didn't respond. Slack is estimated from tide turns at ${tideStation.name}, ${OFF}`
+      : `No current station near this route. Slack is estimated from tide turns at ${tideStation.name}, ${OFF}`)
   } else if (station.d >= 15) {
-    warnings.push('This current station is over 15 km from your route and may be in a different waterway. Its timing may not match your route.')
+    warnings.push(`The nearest current station is ${Math.round(station.d)} km away and may be in a different waterway. Its timing may not match your route.`)
   }
-  if (!tides.length) warnings.push('Tide heights are unavailable; current predictions are still shown.')
+  if (!tides.length) warnings.push('Tide heights are unavailable. Current predictions are still shown.')
   const data = {
     tides, events, approx, warnings,
     dirs: { flood: Number(predictions[0]?.meanFloodDir), ebb: Number(predictions[0]?.meanEbbDir) },
