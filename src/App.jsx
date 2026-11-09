@@ -17,6 +17,7 @@ import { useForecast, useWind } from './hooks/useForecast.js'
 
 const DURATIONS = [1.5, 2, 3, 4, 5]
 const REGIONS = ['Duval County', 'St. Johns County', 'Flagler County'] // north to south
+const YOURS = 'Your route'
 const TEN_MINUTES = 600_000
 const NO_EVENTS = []
 const NO_STATION = 'none'
@@ -98,6 +99,10 @@ export default function App() {
     }
   }, [cleared, forecast.data, events, time, approx, tideStation, station])
 
+  const region = route.region ?? YOURS
+  const regionNames = customRoute ? [...REGIONS, YOURS] : REGIONS
+  const routesIn = name => (name === YOURS ? (customRoute ? [customRoute] : []) : PRESETS.filter(r => r.region === name))
+
   const resetPicks = () => { setPickedWindow(null); setManualMinutes(null) }
   const chooseRoute = value => {
     setDrawing(false)
@@ -106,6 +111,7 @@ export default function App() {
     setStationChoice(null)
     resetPicks()
   }
+  const chooseRegion = name => chooseRoute(routesIn(name)[0].id)
   const startDrawing = () => { setDrawPoints([]); setDrawing(true) }
   const finishDrawing = () => {
     if (drawPoints.length < 2) return
@@ -186,15 +192,16 @@ export default function App() {
             options={DURATIONS.map(h => ({ value: h, main: String(h), unit: 'hr', name: `${h} hours` }))}
             onChange={h => { setDuration(h); resetPicks() }} />
           <div className="field">
-            <label className="field-label" htmlFor="route">Route</label>
+            <label className="field-label" htmlFor="region">Region</label>
+            <select id="region" value={region} onChange={e => chooseRegion(e.target.value)}>
+              {regionNames.map(name => <option key={name} value={name}>{name} ({routesIn(name).length})</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="route">Popular routes</label>
             <select id="route" value={cleared ? '' : routeId} onChange={e => chooseRoute(e.target.value)}>
               {cleared && <option value="" disabled>Choose a route…</option>}
-              {REGIONS.map(region => (
-                <optgroup key={region} label={region}>
-                  {PRESETS.filter(r => r.region === region).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </optgroup>
-              ))}
-              {customRoute && <optgroup label="Yours"><option value={customRoute.id}>{customRoute.name}</option></optgroup>}
+              {routesIn(region).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           {drawing && (
