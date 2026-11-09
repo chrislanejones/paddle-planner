@@ -23,7 +23,6 @@ function viewFor([x0, x1, y0, y1], pad) {
   return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h }
 }
 const REGION = viewFor(unionBounds(COUNTIES.map(c => c.name)), 0.04)
-const CENTERS = Object.fromEntries(COUNTIES.map(c => { const [x0, x1, y0, y1] = PATHS[c.name].bounds; return [c.name, [(x0 + x1) / 2, (y0 + y1) / 2]] }))
 
 // Each section is the part of the county closest to its dot: a Voronoi cell, found by trimming a big box with the
 // halfway line to every other dot. It is worked out in kilometers, the same rule that files a route under a section,
@@ -126,7 +125,7 @@ export default function CountyPicker({ scope, countyCount, sectionCount, bestCou
                 <g key={c.name} className={cls}
                   {...(live ? { role: 'button', tabIndex: 0, 'aria-label': `${c.name} County, ${plural(n, 'route')}`, onClick: () => onCounty(c.name), onKeyDown: keyActivate(() => onCounty(c.name)) } : { 'aria-hidden': 'true' })}>
                   <path d={PATHS[c.name].d} strokeWidth={gap} />
-                  {!county && <text className="geo-name" x={CENTERS[c.name][0]} y={CENTERS[c.name][1] + 4 * u} fontSize={12 * u} textAnchor="middle">{c.name}</text>}
+                  {!county && <text className="geo-name" x={PATHS[c.name].label[0]} y={PATHS[c.name].label[1] + 4 * u} fontSize={12 * u * PATHS[c.name].labelScale} textAnchor="middle">{c.name}</text>}
                 </g>
               )
             })}
