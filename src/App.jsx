@@ -6,7 +6,7 @@ import Windows from './components/Windows.jsx'
 import ChipGroup from './components/ChipGroup.jsx'
 import MapSettings from './components/MapSettings.jsx'
 import ThemeToggle from './components/ThemeToggle.jsx'
-import { ArrowCounterClockwise, Check, CheckCircle, Info, Warning, WarningOctagon, Waves, X } from './components/icons.js'
+import { ArrowCounterClockwise, Check, CheckCircle, Info, PencilSimple, TrashSimple, Warning, WarningOctagon, Waves, X } from './components/icons.js'
 import { loadCurrentStations } from './lib/api.js'
 import { PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
@@ -19,7 +19,6 @@ const DURATIONS = [1.5, 2, 3, 4, 5]
 const TEN_MINUTES = 600_000
 const NO_EVENTS = []
 const NO_STATION = 'none'
-const DRAW_ROUTE = '__draw'
 const ENV_ARCGIS_KEY = import.meta.env.VITE_ARCGIS_API_KEY || ''
 const resolveArcgisKey = () => String(storage.get('pp_arcgis_key') || ENV_ARCGIS_KEY).trim()
 
@@ -98,11 +97,12 @@ export default function App() {
 
   const resetPicks = () => { setPickedWindow(null); setManualMinutes(null) }
   const chooseRoute = value => {
-    if (value === DRAW_ROUTE) { setDrawing(true); setDrawPoints([]); return }
+    setDrawing(false)
     setRouteId(value)
     setStationChoice(null)
     resetPicks()
   }
+  const startDrawing = () => { setDrawPoints([]); setDrawing(true) }
   const finishDrawing = () => {
     if (drawPoints.length < 2) return
     const drawn = { id: 'custom', name: 'My route', pts: drawPoints }
@@ -112,6 +112,12 @@ export default function App() {
     setStationChoice(null)
     setDrawing(false)
     resetPicks()
+  }
+
+  const clearCustomRoute = () => {
+    storage.remove('pp_custom_route')
+    setCustomRoute(null)
+    if (routeId === 'custom') { setRouteId(PRESETS[0].id); setStationChoice(null); resetPicks() }
   }
 
   // Status uses an icon plus a tinted field (never a colored side stripe), so state never relies on color alone.
@@ -170,16 +176,22 @@ export default function App() {
             onChange={h => { setDuration(h); resetPicks() }} />
           <div className="field">
             <label className="field-label" htmlFor="route">Route</label>
-            <select id="route" value={drawing ? DRAW_ROUTE : routeId} onChange={e => chooseRoute(e.target.value)}>
+            <select id="route" value={routeId} onChange={e => chooseRoute(e.target.value)}>
               {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              <option value={DRAW_ROUTE}>Draw my own route…</option>
             </select>
           </div>
           {drawing && (
             <div className="draw-bar">
               <button type="button" onClick={() => setDrawPoints(points => points.slice(0, -1))} disabled={!drawPoints.length}><ArrowCounterClockwise size={18} aria-hidden="true" />Undo point</button>
+              <button type="button" onClick={() => setDrawPoints([])} disabled={!drawPoints.length}><TrashSimple size={18} aria-hidden="true" />Clear route</button>
               <button type="button" className="primary" onClick={finishDrawing} disabled={drawPoints.length < 2}><Check size={18} aria-hidden="true" />Finish route</button>
               <button type="button" onClick={() => setDrawing(false)}><X size={18} aria-hidden="true" />Cancel</button>
+            </div>
+          )}
+          {!drawing && (
+            <div className="draw-bar">
+              <button type="button" onClick={startDrawing}><PencilSimple size={18} aria-hidden="true" />Draw my own route</button>
+              {customRoute && <button type="button" onClick={clearCustomRoute}><TrashSimple size={18} aria-hidden="true" />Clear my route</button>}
             </div>
           )}
           <p className="hint">
