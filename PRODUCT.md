@@ -28,7 +28,7 @@ NOAA CO-OPS tide and current predictions, NWS hourly wind, NOAA Office of Coast 
 
 ## Capabilities and Constraints
 
-- Four preset routes plus one custom route drawn on the map, saved in the browser.
+- Seven preset routes plus one custom route drawn on the map, saved in the browser.
 - Trip length 1.5 to 5 hours, seven days out, daylight and wind per window.
 - Falls back to tide-based estimates when no current station is within range.
 - No backend and no accounts. An optional ArcGIS API key is stored only in the visitor's browser.

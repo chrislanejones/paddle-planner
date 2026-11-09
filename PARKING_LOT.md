@@ -9,5 +9,8 @@
   tile host later, it would be more reliable.
 - Map-label and route colors in `MapView.jsx` are fixed hex values mirroring the tokens; consider reading them
   from CSS variables.
-- More routes: pull real launch points and waterway centerlines from OpenStreetMap (Overpass works with a User-Agent),
-  check each point against the NOAA chart, add to `src/lib/routes.js`.
+- More routes: seven presets now. Summer Haven (the Intracoastal between Marineland and Matanzas Inlet) was skipped:
+  the OSM centerline disagrees with the NOAA chart channel at the bends. Retry with a hand-traced line, and add
+  Guana, Anastasia and Palm Coast routes if wanted. Validate with the water-pixel check against the chart WMS.
+- Launch windows only list slack turns where the current carries you out, so the other slack of each tide is
+  hidden. A "return-first" mode could list those.

@@ -16,7 +16,7 @@ Mirrors: [GitHub](https://github.com/chrislanejones/paddle-planner) and [Codeber
 - **The slack band.** Every window is drawn on a 24-hour strip: green for the way out, blue for the way back, amber at the turn, with daylight behind it. The same colors show up on the chart and the map.
 - **The tide and current chart.** Drag across it to scrub through the day. The readout under it tells you the current, the tide height and the wind at that minute, and which leg the current is helping.
 - **The map.** NOAA's nautical chart by default, with your route drawn on top and the inlet hazard marked where it is. Switch to OpenStreetMap or ArcGIS if you want.
-- **Four preset routes and one of your own.** Draw a custom route on the map and it's saved in your browser.
+- **Seven preset routes and one of your own.** The new ones are the San Sebastian River, Moultrie Creek and Pellicer Creek. Draw a custom route on the map and it's saved in your browser.
 - **Daylight and wind per window.** Windows that start or end in the dark say so.
 - **Light and dark themes.** It follows your system, or you can pick one. Contrast is checked by a test, because glare at a boat ramp is real.
 
