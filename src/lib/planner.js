@@ -159,6 +159,30 @@ export function computeWindows({ events, wind, route, day, nextDay, duration }) 
   }).filter(w => w && w.launch < nextDay && w.back > day)
 }
 
+// Rivers and lakes that don't follow the tide have no slack to center a trip on. These windows are plain
+// daylight trips instead: one early, one around midday, one that ends near sunset, each with the wind it gets.
+export const isTidal = route => route.tidal !== false
+export function freshWindows({ wind, route, day, nextDay, duration }) {
+  const length = duration * HOUR
+  const mid = routeMid(route.pts)
+  const sun = sunTimes(day, mid.lat, mid.lng)
+  const snap = t => Math.round(t / 600_000) * 600_000
+  const noon = (sun.rise + sun.set) / 2
+  const launches = [sun.rise + HOUR / 2, noon - length / 2, sun.set - HOUR / 2 - length].map(snap)
+  const seen = new Set()
+  return launches.filter(launch => {
+    if (launch < sun.rise || launch + length > sun.set || seen.has(launch)) return false
+    seen.add(launch)
+    return true
+  }).map(launch => {
+    const winds = wind.filter(w => w.end > launch && w.t < launch + length)
+    return {
+      launch, turn: launch + length / 2, back: launch + length, peak: 0, daylight: true,
+      wind: winds.length ? winds.reduce((a, b) => (a.mph > b.mph ? a : b)) : null,
+    }
+  }).filter(w => w.launch < nextDay && w.back > day).sort((a, b) => a.launch - b.launch)
+}
+
 export function nearbyStations(stations, route) {
   const seen = new Set()
   return nearestBy(stations, routeMid(route.pts)).filter(s => {

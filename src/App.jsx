@@ -5,20 +5,25 @@ import Readout from './components/Readout.jsx'
 import Windows from './components/Windows.jsx'
 import LastHour from './components/LastHour.jsx'
 import ChipGroup from './components/ChipGroup.jsx'
+import CountyPicker from './components/CountyPicker.jsx'
 import MapSettings from './components/MapSettings.jsx'
 import ThemeToggle from './components/ThemeToggle.jsx'
 import { ArrowCounterClockwise, Check, CheckCircle, Info, PencilSimple, TrashSimple, Warning, WarningOctagon, Waves, X } from './components/icons.js'
 import { loadCurrentStations } from './lib/api.js'
+import { outlineOf, ringsBounds, sectionOf } from './lib/counties.js'
 import { GAUGES, PRESETS, TIDE_STATIONS } from './lib/routes.js'
 import { savedRoute, storage } from './lib/storage.js'
 import {
-  computeWindows, fmtDay, fmtDayChip, forecastDays, nearbyStations, nearestBy, nearestGauge, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
+  computeWindows, fmtDay, fmtDayChip, forecastDays, freshWindows, isTidal, nearbyStations, nearestBy, nearestGauge, outTowardInlet, routeMid, stationKey, sunTimes, valueAt,
 } from './lib/planner.js'
 import { useForecast, useObserved, useWind } from './hooks/useForecast.js'
 
 const DURATIONS = [1.5, 2, 3, 4, 5]
-const REGIONS = ['Nassau County', 'Duval County', 'St. Johns County', 'Flagler County'] // north to south
-const YOURS = 'Your route'
+const ROUTES = PRESETS.map(r => ({ ...r, section: sectionOf(r) }))
+const BEST = ROUTES.filter(r => r.best)
+const BEST_SCOPE = { kind: 'best' }
+const inCounty = name => ROUTES.filter(r => r.county === name)
+const inSection = (county, section) => ROUTES.filter(r => r.county === county && r.section === section)
 const TEN_MINUTES = 600_000
 const NO_EVENTS = []
 const NO_STATION = 'none'
@@ -33,7 +38,8 @@ export default function App() {
   const [dayIdx, setDayIdx] = useState(0)
   const [duration, setDuration] = useState(3)
   const [customRoute, setCustomRoute] = useState(savedRoute)
-  const [routeId, setRouteId] = useState(PRESETS[0].id)
+  const [routeId, setRouteId] = useState(BEST[0].id)
+  const [scope, setScope] = useState(BEST_SCOPE) // which routes the picker lists: best of, a county, a section, or yours
   const [stations, setStations] = useState([])
   const [stationChoice, setStationChoice] = useState(null) // null = nearest within 15 km
   const [drawing, setDrawing] = useState(false)
@@ -53,11 +59,12 @@ export default function App() {
     return () => controller.abort()
   }, [])
 
-  const routes = useMemo(() => (customRoute ? [...PRESETS, customRoute] : PRESETS), [customRoute])
-  const route = routes.find(r => r.id === routeId) ?? PRESETS[0]
+  const routes = useMemo(() => (customRoute ? [...ROUTES, customRoute] : ROUTES), [customRoute])
+  const route = routes.find(r => r.id === routeId) ?? BEST[0]
+  const tidal = isTidal(route)
   const mid = useMemo(() => routeMid(route.pts), [route])
-  const tideStation = useMemo(() => nearestBy(TIDE_STATIONS, mid)[0], [mid])
-  const stationOptions = useMemo(() => nearbyStations(stations, route), [stations, route])
+  const tideStation = useMemo(() => (tidal ? nearestBy(TIDE_STATIONS, mid)[0] : null), [tidal, mid])
+  const stationOptions = useMemo(() => (tidal ? nearbyStations(stations, route) : []), [tidal, stations, route])
   const station = useMemo(() => {
     if (stationChoice === NO_STATION) return null
     if (stationChoice) return stationOptions.find(s => stationKey(s) === stationChoice) ?? null
@@ -66,7 +73,7 @@ export default function App() {
 
   const forecast = useForecast(tideStation, station, days, revision)
   const wind = useWind(mid, revision)
-  const gauge = useMemo(() => nearestGauge(GAUGES, mid), [mid])
+  const gauge = useMemo(() => (tidal ? nearestGauge(GAUGES, mid) : null), [tidal, mid])
   const observed = useObserved(gauge, revision)
   const events = forecast.data?.events ?? NO_EVENTS
   const tides = forecast.data?.tides ?? NO_EVENTS
@@ -75,9 +82,10 @@ export default function App() {
   const day = days[dayIdx]
   const nextDay = days[dayIdx + 1]
   const sun = useMemo(() => sunTimes(day, mid.lat, mid.lng), [day, mid])
-  const windows = useMemo(() => (forecast.data
-    ? computeWindows({ events, wind: wind.data, route, day, nextDay, duration })
-    : []), [forecast.data, events, wind.data, route, day, nextDay, duration])
+  const windows = useMemo(() => {
+    if (!tidal) return freshWindows({ wind: wind.data, route, day, nextDay, duration })
+    return forecast.data ? computeWindows({ events, wind: wind.data, route, day, nextDay, duration }) : []
+  }, [tidal, forecast.data, events, wind.data, route, day, nextDay, duration])
   const selected = pickedWindow !== null && pickedWindow < windows.length
     ? pickedWindow : Math.max(0, windows.findIndex(w => w.daylight))
   const trip = windows[selected]
@@ -103,9 +111,15 @@ export default function App() {
     }
   }, [cleared, forecast.data, events, time, approx, tideStation, station])
 
-  const region = route.region ?? YOURS
-  const regionNames = customRoute ? [...REGIONS, YOURS] : REGIONS
-  const routesIn = name => (name === YOURS ? (customRoute ? [customRoute] : []) : PRESETS.filter(r => r.region === name))
+  const scopeRoutes = useMemo(() => {
+    if (scope.kind === 'county') return inCounty(scope.county)
+    if (scope.kind === 'section') return inSection(scope.county, scope.section)
+    if (scope.kind === 'yours') return customRoute ? [customRoute] : []
+    return BEST
+  }, [scope, customRoute])
+  const scopeLabel = scope.kind === 'county' ? `${scope.county} County`
+    : scope.kind === 'section' ? `${scope.county} · ${scope.section}`
+      : scope.kind === 'yours' ? 'Your route' : 'Best of the First Coast'
 
   const resetPicks = () => { setPickedWindow(null); setManualMinutes(null) }
   const chooseRoute = value => {
@@ -115,10 +129,23 @@ export default function App() {
     setStationChoice(null)
     resetPicks()
   }
-  const chooseRegion = name => {
-    chooseRoute(routesIn(name)[0].id)
-    setRegionFocus(f => ({ key: f.key + 1, pts: routesIn(name).flatMap(r => r.pts) }))
+  // Each pick narrows the route list, selects its first route and moves the map to what it covers.
+  const enterScope = (next, list, pts, maxZoom) => {
+    setScope(next)
+    chooseRoute(list[0].id)
+    setRegionFocus(f => ({ key: f.key + 1, pts, maxZoom }))
   }
+  const chooseBest = () => enterScope(BEST_SCOPE, BEST, BEST.flatMap(r => r.pts), 10)
+  const chooseCounty = name => {
+    const b = ringsBounds(outlineOf(name))
+    enterScope({ kind: 'county', county: name }, inCounty(name), [[b.south, b.west], [b.north, b.east]], 12)
+  }
+  const chooseSection = section => {
+    if (!section) { chooseCounty(scope.county); return }
+    const list = inSection(scope.county, section)
+    enterScope({ kind: 'section', county: scope.county, section }, list, list.flatMap(r => r.pts), 13)
+  }
+  const chooseYours = () => { setScope({ kind: 'yours' }); chooseRoute('custom') }
   const startDrawing = () => { setDrawPoints([]); setDrawing(true) }
   const finishDrawing = () => {
     if (drawPoints.length < 2) return
@@ -126,6 +153,7 @@ export default function App() {
     storage.set('pp_custom_route', drawn)
     setCustomRoute(drawn)
     setCleared(false)
+    setScope({ kind: 'yours' })
     setRouteId('custom')
     setStationChoice(null)
     setDrawing(false)
@@ -137,7 +165,8 @@ export default function App() {
     if (routeId === 'custom') {
       storage.remove('pp_custom_route')
       setCustomRoute(null)
-      setRouteId(PRESETS[0].id)
+      setRouteId(BEST[0].id)
+      setScope(BEST_SCOPE)
     }
     setStationChoice(null)
     setCleared(true)
@@ -148,6 +177,8 @@ export default function App() {
   let status
   if (drawing) {
     status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Tap the map to place the launch, then each bend. The last tap is the turn.</p></div>
+  } else if (!tidal) {
+    status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Not tidal water. Times below are daylight trips, picked with the wind in mind. Check the river level before you go.</p></div>
   } else if (forecast.status === 'loading') {
     status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Loading NOAA tide and current predictions…</p></div>
   } else if (forecast.status === 'error') {
@@ -198,17 +229,14 @@ export default function App() {
           <ChipGroup label="Round trip" value={duration} className="lengths"
             options={DURATIONS.map(h => ({ value: h, main: String(h), unit: 'hr', name: `${h} hours` }))}
             onChange={h => { setDuration(h); resetPicks() }} />
+          <CountyPicker scope={scope} bestCount={BEST.length} hasYours={Boolean(customRoute)}
+            countyCount={name => inCounty(name).length} sectionCount={(county, section) => inSection(county, section).length}
+            onBest={chooseBest} onCounty={chooseCounty} onSection={chooseSection} onYours={chooseYours} />
           <div className="field">
-            <label className="field-label" htmlFor="region">Region</label>
-            <select id="region" value={region} onChange={e => chooseRegion(e.target.value)}>
-              {regionNames.map(name => <option key={name} value={name}>{name} ({routesIn(name).length})</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label className="field-label" htmlFor="route">Popular routes</label>
+            <label className="field-label" htmlFor="route">Routes <span className="field-note">{scopeLabel}</span></label>
             <select id="route" value={cleared ? '' : routeId} onChange={e => chooseRoute(e.target.value)}>
               {cleared && <option value="" disabled>Choose a route…</option>}
-              {routesIn(region).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {scopeRoutes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
           {drawing && (
@@ -230,11 +258,16 @@ export default function App() {
           ) : (
             <>
             <p className="hint">
-              Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
-              return on the <b>{toward ? 'flood' : 'ebb'}</b>. Lines are approximate. Draw your own for an exact path.
+              {tidal ? (
+                <>Out leg runs <b>{toward ? 'toward' : 'away from'}</b> {inlet.name}: paddle out on the <b>{toward ? 'ebb' : 'flood'}</b>,
+                return on the <b>{toward ? 'flood' : 'ebb'}</b>.</>
+              ) : (
+                <>The river sets the current here, not the tide. The out leg runs <b>{route.flow === 'with' ? 'with' : 'against'}</b> the
+                flow, so the return is <b>{route.flow === 'with' ? 'against' : 'with'}</b> it.</>
+              )}{' '}Lines are approximate. Draw your own for an exact path.
             {route.note && <> <b>{route.note}</b></>}
             </p>
-            <details className="advanced">
+            {tidal && <details className="advanced">
               <summary>Current source: {stationLabel}</summary>
               <div className="field">
                 <label className="field-label" htmlFor="station">Current station</label>
@@ -244,16 +277,17 @@ export default function App() {
                   <option value={NO_STATION}>Estimate from tides only</option>
                 </select>
               </div>
-            </details>
+            </details>}
             {status}
 
             <h2>Launch windows</h2>
             <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
-              loading={forecast.status === 'loading' && !drawing}
+              loading={tidal && forecast.status === 'loading' && !drawing} tidal={tidal}
               onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
+            {tidal && (<>
             <h2>Conditions</h2>
-          <LastHour gauge={gauge} observed={observed} tides={tides} predictionStationId={tideStation.id} />
+            <LastHour gauge={gauge} observed={observed} tides={tides} predictionStationId={tideStation.id} />
             <Readout time={time} route={route} events={events} tides={tides} wind={wind.data} windStatus={wind.status}
               approx={approx} max={maxMinutes} minutes={minutes} onMinutes={setManualMinutes} />
             <Chart day={day} nextDay={nextDay} sun={sun} events={events} tides={tides} approx={approx}
@@ -266,6 +300,7 @@ export default function App() {
               <li><i className="sw sw-slack" />Turn at slack water</li>
               <li><i className="sw sw-night" />Night</li>
             </ul>
+            </>)}
             </>
           )}
 

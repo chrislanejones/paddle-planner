@@ -30,3 +30,16 @@
   Palm Coast shows nothing. Re-check the `waterlevels` station list from time to time; a St. Augustine gauge would help most.
 - Overlay the measured last-hour line on the tide chart as a dotted trace. Left off because the chart is exactly how
   it was approved.
+- County picker: seven counties (Baker, Clay, Duval, Flagler, Nassau, Putnam, St. Johns), each split into sections by
+  dot. A route lands in the section whose dot is closest to its launch. Dots are hand-placed in `src/lib/counties.js`.
+  Sections with no routes show as disabled. Olustee (Baker) and a few others are empty until someone adds a route there.
+- Inland routes (Baker, Clay, Putnam, and the St. Johns River creeks) come from the USGS National Hydrography Dataset,
+  not from a chart check. Launch points are on the waterway line, not confirmed boat ramps or put-ins. Confirm access,
+  parking and permission for each before it is described as a launch. The prong rivers (Baker) are blackwater and can be
+  too low to paddle in dry months; the app has no river-level data for them.
+- Non-tidal routes (`tidal: false`) show daylight trips instead of slack-water windows, and skip the tide chart and
+  live gauge. NOAA has no river-flow product wired in. USGS stream gauges would let the app say "too low" or "running high".
+- Several routes sit on a county line (the St. Johns River is the Clay / St. Johns border; the St. Marys prongs run along
+  Baker). They are filed under the county the launch point is in.
+- The USGS flowline service (`hydro.nationalmap.gov`) was slow and sometimes timed out. The route builder script lives only
+  in /tmp (`nhd.py`, `build_routes.py`). Worth moving to `scripts/` if more routes get added.

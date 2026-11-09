@@ -4,6 +4,8 @@ import { loadObserved, loadPredictions, loadWind } from '../lib/api.js'
 export function useForecast(tideStation, station, days, revision) {
   const [result, setResult] = useState({ status: 'loading', data: null, error: '' })
   useEffect(() => {
+    // A route that doesn't follow the tide has no tide station, so there is nothing to load.
+    if (!tideStation) { setResult({ status: 'idle', data: null, error: '' }); return undefined }
     const controller = new AbortController()
     setResult({ status: 'loading', data: null, error: '' })
     loadPredictions({ tideStation, station, days, signal: controller.signal, refresh: revision > 0 })

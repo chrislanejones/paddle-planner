@@ -124,7 +124,7 @@ export default function MapView({ route, visible = true, focus, window: trip, dr
   useEffect(() => {
     if (!focus?.key || focus.key === handledFocusRef.current) return
     handledFocusRef.current = focus.key
-    if (focus.pts.length > 1) mapRef.current.fitBounds(L.polyline(focus.pts).getBounds(), { padding: [30, 30], maxZoom: 12 })
+    if (focus.pts.length > 1) mapRef.current.fitBounds(L.polyline(focus.pts).getBounds(), { padding: [30, 30], maxZoom: focus.maxZoom ?? 12 })
   }, [focus])
 
   useEffect(() => {

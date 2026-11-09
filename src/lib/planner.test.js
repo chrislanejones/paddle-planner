@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  DAY, HOUR, computeWindows, currentEvents, findTurns, forecastDays, km, nearbyStations, offsetLine,
+  DAY, HOUR, computeWindows, currentEvents, findTurns, forecastDays, freshWindows, isTidal, km, nearbyStations, offsetLine,
   lastHourSummary, nearestGauge, outTowardInlet, parseNoaa, routeMid, stationKey, sunTimes, tideEvents, valueAt, windAt, ymd,
 } from './planner.js'
 import { PRESETS } from './routes.js'
@@ -165,4 +165,23 @@ test('lastHourSummary reports level, change over the hour, and freshness', () =>
   assert.equal(lastHourSummary(flat, t0).trend, 'steady')
   // Only 20 minutes of data: not enough to claim an hourly change.
   assert.equal(lastHourSummary(readings.slice(0, 4), t0).change, null)
+})
+
+test('freshWindows gives daylight trips for rivers that do not follow the tide', () => {
+  const river = { id: 'x', tidal: false, pts: [[30.07, -81.84], [30.08, -81.8]] }
+  assert.equal(isTidal(river), false)
+  assert.equal(isTidal({ pts: [] }), true)
+  const [day, nextDay] = forecastDays(new Date('2026-11-09T12:00:00Z'))
+  const wind = [{ t: day, end: nextDay, mph: 9, dir: 'NE' }]
+  const sun = sunTimes(day, 30.07, -81.84)
+  const list = freshWindows({ wind, route: river, day, nextDay, duration: 3 })
+  assert.ok(list.length >= 2, 'a 3 hour trip fits at least two times in a November day')
+  list.forEach(w => {
+    assert.ok(w.launch >= sun.rise && w.back <= sun.set, 'every trip is in daylight')
+    assert.equal(w.back - w.launch, 3 * HOUR)
+    assert.equal(w.turn - w.launch, 1.5 * HOUR)
+    assert.equal(w.wind.mph, 9)
+  })
+  assert.deepEqual(list.map(w => w.launch), [...list.map(w => w.launch)].sort((a, b) => a - b))
+  assert.deepEqual(freshWindows({ wind, route: river, day, nextDay, duration: 14 }), [])
 })

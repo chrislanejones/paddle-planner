@@ -33,7 +33,7 @@ function darkNote(trip, sun) {
   return null
 }
 
-export default function Windows({ windows, selected, day, nextDay, sun, duration, approx, loading, onSelect }) {
+export default function Windows({ windows, selected, day, nextDay, sun, duration, approx, loading, tidal = true, onSelect }) {
   if (loading) {
     return (
       <div className="win-list" aria-hidden="true">
@@ -58,13 +58,13 @@ export default function Windows({ windows, selected, day, nextDay, sun, duration
               <span className="win-len">{duration} hr</span>
             </span>
             <SlackBand trip={w} day={day} nextDay={nextDay} sun={sun} />
-            <span className="win-turn">Turn <b><Clock time={w.turn} day={day} /></b> at slack</span>
+            <span className="win-turn">Turn <b><Clock time={w.turn} day={day} /></b> {tidal ? 'at slack' : 'at the halfway point'}</span>
             <span className="chips">
               <span className={`chip ${dark ? 'chip-dark' : ''}`}>
                 {dark ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}
                 {dark ?? 'Daylight'}
               </span>
-              <span className="chip">{approx ? 'Strength: estimate' : `Peak ${w.peak.toFixed(1)} kn`}</span>
+              {tidal && <span className="chip">{approx ? 'Strength: estimate' : `Peak ${w.peak.toFixed(1)} kn`}</span>}
               {w.wind && <span className="chip"><Wind size={14} aria-hidden="true" />Wind to {w.wind.mph} mph {w.wind.dir}</span>}
             </span>
           </button>

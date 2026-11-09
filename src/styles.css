@@ -244,3 +244,68 @@ h1, h2 { text-wrap: balance; }
 .lh-trend { display: inline-flex; align-items: center; gap: var(--s-1); font-weight: 700; }
 .lh-source { margin: var(--s-2) 0 0; font-size: var(--t-xs); color: var(--mute); text-wrap: pretty; }
 .spark { width: 100%; height: 2.6rem; display: block; }
+
+/* ---------- county picker: links on the left, the county map on the right ---------- */
+.geo-wrap { margin-bottom: var(--s-4); }
+.geo { display: grid; gap: var(--s-3); margin-bottom: var(--s-3); } /* map at full width, county links below it */
+.geo-title { margin: 0 0 var(--s-2); font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); font-stretch: 88%; }
+.geo-list ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.geo-link {
+  width: 100%; min-height: 2.5rem; justify-content: space-between; gap: var(--s-2); padding: var(--s-1) var(--s-3);
+  text-align: left; font-weight: 400;
+}
+.geo-link[aria-pressed='true'] { background: var(--select); color: var(--on-select); font-weight: 700; }
+.geo-link:disabled { color: var(--mute); text-decoration: line-through; }
+.geo-count { font-size: var(--t-xs); font-weight: 700; color: var(--mute); font-variant-numeric: tabular-nums; }
+.geo-link[aria-pressed='true'] .geo-count { color: inherit; }
+.geo-map { position: relative; aspect-ratio: 1.1; width: 100%; background: var(--card); border: 1.5px solid var(--control); border-radius: var(--r-sm); overflow: hidden; }
+.geo-map svg { display: block; width: 100%; height: 100%; }
+.geo-neighbor { fill: var(--panel); stroke: var(--card); stroke-linejoin: round; vector-effect: none; transition: opacity .3s ease-out; }
+.geo-neighbor.faded { opacity: 0; }
+/* the stroke is the page color, so it reads as a gap between counties */
+.geo-county path { fill: var(--tint-ok); stroke: var(--card); stroke-linejoin: round; transition: fill .15s ease-out, opacity .3s ease-out; }
+.geo-county[role='button'] { cursor: pointer; }
+.geo-county[role='button']:hover path { fill: var(--select); fill-opacity: .35; }
+.geo-county[role='button']:focus-visible { outline: none; }
+.geo-county[role='button']:focus-visible path { stroke: var(--focus); }
+.geo-county.off path { fill: var(--panel); }
+.geo-county.faded { opacity: 0; pointer-events: none; }
+.geo-county.picked path { fill: var(--panel); }
+.geo-name { fill: var(--ink); font-weight: 700; font-stretch: 88%; pointer-events: none; }
+.geo-county.off .geo-name { fill: var(--mute); }
+.geo-dot { cursor: pointer; }
+.geo-hit { fill: transparent; }
+.geo-edge { fill: none; stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; pointer-events: none; }
+.geo-cell { fill: var(--tint-ok); stroke: var(--card); stroke-linejoin: round; transition: fill .15s ease-out; }
+.geo-dot:hover .geo-cell { fill: var(--select); fill-opacity: .3; }
+.geo-dot.on .geo-cell { fill: var(--select); fill-opacity: .4; }
+.geo-dot:focus-visible .geo-cell { stroke: var(--focus); }
+.geo-dot.off .geo-cell { fill: var(--panel); }
+.geo-disc { fill: var(--card); stroke: var(--select); }
+.geo-n { fill: var(--ink); font-weight: 700; pointer-events: none; }
+.geo-dot:hover .geo-disc { fill: var(--tint-info); }
+.geo-dot.on .geo-disc { fill: var(--select); }
+.geo-dot.on .geo-n { fill: var(--on-select); }
+.geo-map svg *:focus { outline: none; } /* browsers draw a box around the whole shape; the stroke below marks focus instead */
+.geo-dot:focus-visible { outline: none; }
+.geo-dot:focus-visible .geo-disc { stroke: var(--focus); stroke-width: 3px; }
+.geo-dot.off { cursor: not-allowed; }
+.geo-dot.off .geo-disc { fill: var(--panel); stroke: var(--control); stroke-dasharray: 3 2; }
+.geo-dot.off .geo-n { fill: var(--mute); font-weight: 400; }
+
+/* the county's sections as links; a section with no routes is painted disabled */
+.geo-sections { margin: 0 0 var(--s-4); }
+.geo-sections-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-2); font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); font-stretch: 88%; }
+.geo-sections ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.geo-sec { width: 100%; min-height: 2.5rem; justify-content: flex-start; gap: var(--s-2); padding: var(--s-1) var(--s-2); font-weight: 400; text-align: left; }
+.geo-sec-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.geo-sec-n { display: inline-grid; place-items: center; flex: none; width: 1.5rem; height: 1.5rem; border: 2px solid var(--select); border-radius: 50%; font-size: var(--t-xs); font-weight: 700; }
+.geo-sec[aria-pressed='true'] { background: var(--select); color: var(--on-select); font-weight: 700; }
+.geo-sec[aria-pressed='true'] .geo-sec-n { border-color: currentColor; }
+.geo-sec[aria-pressed='true'] .geo-count { color: inherit; }
+.geo-sec:disabled { color: var(--mute); }
+.geo-sec:disabled .geo-sec-n { border: 2px dashed var(--control); }
+.geo-sec:disabled .geo-sec-name { text-decoration: line-through; }
+/* Back sits on the map, top left, one level up each time */
+.geo-back-map { position: absolute; left: var(--s-2); top: var(--s-2); min-height: 2.25rem; padding: 0 var(--s-3); font-size: var(--t-sm); white-space: nowrap; background: var(--card); }
+@media (prefers-reduced-motion: reduce) { .geo-neighbor, .geo-county path { transition: none; } }
