@@ -36,8 +36,8 @@
 - Inland routes (Baker, Clay, Putnam, and the St. Johns River creeks) come from the USGS National Hydrography Dataset,
   not from a chart check. Launch points are on the waterway line, not confirmed boat ramps or put-ins. Confirm access,
   parking and permission for each before it is described as a launch. The app has no river-level data for them.
-- Removed 11-09-2026: the North, Middle and South Prong of the St. Marys, the North and South Fork of Black Creek and Deep
-  Creek. The NHD flowlines were swamp drainage with no mapped stream on OpenStreetMap, so the lines ran through woods
+- Removed 11-09-2026: the North, Middle and South Prong of the St. Marys, the North and South Fork of Black Creek, Deep
+  Creek, Peters Creek, Governors Creek and Rice Creek, plus the St. Johns River line at Green Cove Springs (mid-channel). The NHD flowlines were swamp drainage with no mapped stream on OpenStreetMap, so the lines ran through woods
   and subdivisions. Check any new inland route against OpenStreetMap, not only the NOAA chart: the chart is blank tan
   inland, so a good river and a bad one look the same there. Baker is left with one route, the St. Marys on the state line.
 - Non-tidal routes (`tidal: false`) show daylight trips instead of slack-water windows, and skip the tide chart and
