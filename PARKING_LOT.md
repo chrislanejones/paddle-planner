@@ -35,8 +35,11 @@
   Sections with no routes show as disabled. Olustee (Baker) and a few others are empty until someone adds a route there.
 - Inland routes (Baker, Clay, Putnam, and the St. Johns River creeks) come from the USGS National Hydrography Dataset,
   not from a chart check. Launch points are on the waterway line, not confirmed boat ramps or put-ins. Confirm access,
-  parking and permission for each before it is described as a launch. The prong rivers (Baker) are blackwater and can be
-  too low to paddle in dry months; the app has no river-level data for them.
+  parking and permission for each before it is described as a launch. The app has no river-level data for them.
+- Removed 11-09-2026: the North, Middle and South Prong of the St. Marys, the North and South Fork of Black Creek and Deep
+  Creek. The NHD flowlines were swamp drainage with no mapped stream on OpenStreetMap, so the lines ran through woods
+  and subdivisions. Check any new inland route against OpenStreetMap, not only the NOAA chart: the chart is blank tan
+  inland, so a good river and a bad one look the same there. Baker is left with one route, the St. Marys on the state line.
 - Non-tidal routes (`tidal: false`) show daylight trips instead of slack-water windows, and skip the tide chart and
   live gauge. NOAA has no river-flow product wired in. USGS stream gauges would let the app say "too low" or "running high".
 - Several routes sit on a county line (the St. Johns River is the Clay / St. Johns border; the St. Marys prongs run along
