@@ -179,7 +179,7 @@ export default function App() {
     status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Tap the map to place the launch, then each bend. The last tap is the turn.</p></div>
   } else if (!tidal) {
     status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Not tidal water. Times below are daylight trips, picked with the wind in mind. Check the river level before you go.</p></div>
-  } else if (forecast.status === 'loading') {
+  } else if (forecast.status === 'loading' || forecast.status === 'idle') {
     status = <div className="status info" role="status"><Info size={20} aria-hidden="true" /><p>Loading NOAA tide and current predictions…</p></div>
   } else if (forecast.status === 'error') {
     status = (
@@ -282,7 +282,7 @@ export default function App() {
 
             <h2>Launch windows</h2>
             <Windows windows={windows} selected={selected} day={day} nextDay={nextDay} sun={sun} duration={duration} approx={approx}
-              loading={tidal && forecast.status === 'loading' && !drawing} tidal={tidal}
+              loading={tidal && (forecast.status === 'loading' || forecast.status === 'idle') && !drawing} tidal={tidal}
               onSelect={i => { setPickedWindow(i); setManualMinutes(null) }} />
 
             {tidal && (<>
