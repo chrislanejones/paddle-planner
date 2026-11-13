@@ -45,12 +45,24 @@ a { text-underline-offset: .2em; }
 @media (max-width: 30rem) { .theme-toggle span { display: none; } }
 
 .wrap { display: grid; grid-template-columns: minmax(0, 1fr); flex: 1; min-height: 0; }
-#map { height: clamp(16rem, 38vh, 24rem); background: var(--panel); }
+.map-wrap { position: relative; height: clamp(16rem, 38vh, 24rem); background: var(--panel); }
+#map { height: 100%; }
+.map-load {
+  position: absolute; z-index: 1000; top: var(--s-3); left: 50%; transform: translateX(-50%);
+  width: min(20rem, calc(100% - 9rem)); padding: var(--s-2) var(--s-3);
+  font-size: var(--t-sm); color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: 0 2px 8px rgb(0 0 0 / .18);
+}
+.map-load-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.map-load button { flex: none; min-height: 2rem; }
+.map-bar { height: .375rem; margin-top: var(--s-2); overflow: hidden; background: var(--panel); border-radius: 999px; }
+.map-bar span { display: block; height: 100%; background: var(--select); border-radius: inherit; }
+@media (prefers-reduced-motion: no-preference) { .map-bar span { transition: width .2s ease-out; } }
 #panel { min-width: 0; padding: var(--s-4) var(--s-4) var(--s-6); background: var(--panel); }
 @media (min-width: 62rem) {
   #root { height: 100dvh; }
   .wrap { grid-template-columns: minmax(0, 1fr) 27.5rem; }
-  #map { height: 100%; }
+  .map-wrap { height: 100%; }
   #panel { overflow: auto; }
 }
 

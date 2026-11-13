@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { INLETS } from '../lib/routes.js'
 import { bearing, fmtClock, offsetLine } from '../lib/planner.js'
 import { storage } from '../lib/storage.js'
+import { MAX_TILE_RETRIES, createTileTracker } from '../lib/tileProgress.js'
 
 const STATIC = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1'
 const ESRI_ATTRIBUTION = 'Powered by <a href="https://www.esri.com">Esri</a> | Esri, TomTom, Garmin, FAO, NOAA, USGS'
 const NOAA_CHART = 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/NOAAChartDisplay/MapServer/exts/MaritimeChartService/WMSServer'
 export const DEFAULT_BASEMAP = 'NOAA Nautical Chart'
-const MAX_TILE_RETRIES = 6
 
 // The map is always light (a chart), so these stay fixed across themes and read on every base layer
 // thanks to the white casing. They mirror --out, --back, --slack and --hazard in tokens.css.
@@ -66,6 +66,9 @@ export default function MapView({ route, visible = true, focus, window: trip, dr
   const handledFocusRef = useRef(0)
   const onDrawPointRef = useRef(onDrawPoint)
   const drawingRef = useRef(drawing)
+  const tracker = useRef(createTileTracker()).current
+  const [load, setLoad] = useState({ total: 0, done: 0, pending: 0, retrying: 0, failed: 0 })
+  const [slow, setSlow] = useState(false)
   useEffect(() => { onDrawPointRef.current = onDrawPoint; drawingRef.current = drawing })
 
   useEffect(() => {
@@ -91,19 +94,51 @@ export default function MapView({ route, visible = true, focus, window: trip, dr
       storage.set('pp_basemap', e.name)
       map.getContainer().dataset.base = e.name
     })
-    return () => { map.remove(); mapRef.current = null; layersRef.current = {} }
+    // The panel beside the map settles after the first paint (fonts, scrollbar), so Leaflet can start with a stale size
+    // and leave part of the map blank. Telling it whenever the box changes keeps every tile in view.
+    const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }))
+    observer.observe(containerRef.current)
+    return () => { observer.disconnect(); map.remove(); mapRef.current = null; layersRef.current = {} }
   }, [])
 
   useEffect(() => {
     const map = mapRef.current
     const bases = buildBasemaps(arcgisKey)
+    // Report every tile to the tracker. A rAF batches the many events a pan fires into one update.
+    let frame = 0
+    const sync = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; setLoad(tracker.summary()) }) }
+    const watch = layer => {
+      if (layer instanceof L.LayerGroup) { layer.eachLayer(watch); return }
+      layer.on('tileloadstart', e => { tracker.start(e.tile); sync() })
+      layer.on('tileload', e => { tracker.done(e.tile); sync() })
+      layer.on('tileerror', e => { tracker.error(e.tile); sync() })
+      layer.on('tileunload', e => { tracker.unload(e.tile); sync() })
+    }
+    Object.values(bases).forEach(watch)
     const saved = storage.get('pp_basemap')
     const name = bases[saved] ? saved : DEFAULT_BASEMAP
     bases[name].addTo(map)
     map.getContainer().dataset.base = name
     const control = L.control.layers(bases, null, { position: 'topright', collapsed: true }).addTo(map)
-    return () => { map.removeControl(control); Object.values(bases).forEach(layer => map.removeLayer(layer)) }
-  }, [arcgisKey])
+    return () => {
+      cancelAnimationFrame(frame)
+      tracker.clear()
+      map.removeControl(control)
+      Object.values(bases).forEach(layer => map.removeLayer(layer))
+    }
+  }, [arcgisKey, tracker])
+
+  // Hold the bar back for a moment so a quick load never flashes it.
+  const busy = load.pending > 0
+  useEffect(() => {
+    if (!busy) { setSlow(false); return undefined }
+    const timer = setTimeout(() => setSlow(true), 350)
+    return () => clearTimeout(timer)
+  }, [busy])
+  const retryTiles = () => {
+    tracker.clear()
+    mapRef.current.eachLayer(layer => { if (layer instanceof L.TileLayer) layer.redraw() })
+  }
 
   useEffect(() => {
     mapRef.current.getContainer().style.cursor = drawing ? 'crosshair' : ''
@@ -176,5 +211,28 @@ export default function MapView({ route, visible = true, focus, window: trip, dr
       .bindTooltip(tip).addTo(layer)
   }, [stationMarker])
 
-  return <div id="map" ref={containerRef} role="application" aria-label="Map of the selected paddling route" />
+  const percent = load.total ? Math.round(100 * load.done / load.total) : 0
+  const gaveUp = !busy && load.failed > 0
+  return (
+    <div className="map-wrap">
+      <div id="map" ref={containerRef} role="application" aria-label="Map of the selected paddling route" />
+      {((busy && slow) || gaveUp) && (
+        <div className="map-load" role="status">
+          <div className="map-load-row">
+            <span>
+              {gaveUp ? 'Some map tiles didn’t load.'
+                : load.retrying > 0 ? `The chart server is slow. Retrying ${load.retrying} of ${load.total} tiles…`
+                  : `Loading map… ${load.done} of ${load.total} tiles`}
+            </span>
+            {gaveUp && <button type="button" onClick={retryTiles}>Try again</button>}
+          </div>
+          {busy && (
+            <div className="map-bar" role="progressbar" aria-label="Map tiles loaded" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+              <span style={{ width: `${percent}%` }} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
